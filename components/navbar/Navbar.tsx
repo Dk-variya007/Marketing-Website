@@ -36,25 +36,27 @@ export function Navbar({ onOpenDemo }: NavbarProps) {
 
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 20) {
-        setIsScrolled(true);
-      } else {
-        setIsScrolled(false);
-      }
+      setIsScrolled(window.scrollY > 20);
     };
 
+    handleScroll();
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [pathname]);
+
+  useEffect(() => {
+    setActiveDropdown(null);
+    setMobileMenuOpen(false);
+  }, [pathname]);
 
   return (
     <>
       <header
         className={clsx(
-          "fixed top-0 left-0 right-0 z-40 transition-all duration-300",
+          "fixed top-0 left-0 right-0 z-40 transition-colors duration-200 py-3.5",
           isScrolled
-            ? "bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100 py-3"
-            : "bg-transparent py-5"
+            ? "bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-200/80"
+            : "bg-white/90 backdrop-blur-md shadow-xs border-b border-slate-100"
         )}
       >
         <Container size="wide">
@@ -117,20 +119,22 @@ export function Navbar({ onOpenDemo }: NavbarProps) {
                 onMouseEnter={() => setActiveDropdown("product")}
                 onMouseLeave={() => setActiveDropdown(null)}
               >
-                <button
+                <Link
+                  href="/"
+                  onClick={() => {
+                    setActiveDropdown(null);
+                    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+                  }}
                   className={clsx(
                     "flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors",
-                    activeDropdown === "product"
-                      ? "text-brand-600 bg-slate-50"
+                    pathname === "/"
+                      ? "text-brand-600 bg-brand-50"
                       : "text-slate-700 hover:text-navy-900 hover:bg-slate-50/80"
                   )}
-                  onClick={() =>
-                    setActiveDropdown(activeDropdown === "product" ? null : "product")
-                  }
                 >
                   <span>Product</span>
                   <ChevronDown className="h-4 w-4 transition-transform duration-200" />
-                </button>
+                </Link>
 
                 {activeDropdown === "product" && (
                   <div className="absolute top-full left-0 w-[520px] bg-white rounded-2xl shadow-2xl border border-slate-200/90 p-4 pt-3 mt-1 grid grid-cols-2 gap-2 animate-in fade-in slide-in-from-top-2 duration-150">
@@ -170,8 +174,8 @@ export function Navbar({ onOpenDemo }: NavbarProps) {
                       </div>
                     </a>
 
-                    <a
-                      href="/#route-story"
+                    <Link
+                      href="/tracking-flow"
                       onClick={() => setActiveDropdown(null)}
                       className="p-3 rounded-xl hover:bg-slate-50 transition group flex gap-3 items-start"
                     >
@@ -180,13 +184,13 @@ export function Navbar({ onOpenDemo }: NavbarProps) {
                       </div>
                       <div>
                         <div className="text-sm font-semibold text-navy-900 group-hover:text-brand-600">
-                          Route Replay
+                          Tracking Flow
                         </div>
                         <div className="text-xs text-slate-500 mt-0.5">
-                          Turn-by-turn historical journeys & timeline
+                          Interactive day-in-the-field simulation
                         </div>
                       </div>
-                    </a>
+                    </Link>
 
                     <a
                       href="/#features"
@@ -427,18 +431,36 @@ export function Navbar({ onOpenDemo }: NavbarProps) {
 
             <div className="flex flex-col space-y-2">
               <Link
-                href="/tracking-flow"
+                href="/"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-3 p-3 rounded-xl bg-brand-50 text-navy-900 font-semibold"
+                className={clsx(
+                  "flex items-center gap-3 p-3 rounded-xl font-semibold",
+                  pathname === "/" ? "bg-brand-50 text-brand-700" : "bg-slate-50 text-navy-900"
+                )}
               >
                 <Navigation className="h-5 w-5 text-brand-600" />
+                <span>Product Home</span>
+              </Link>
+
+              <Link
+                href="/tracking-flow"
+                onClick={() => setMobileMenuOpen(false)}
+                className={clsx(
+                  "flex items-center gap-3 p-3 rounded-xl font-semibold",
+                  pathname === "/tracking-flow" ? "bg-brand-50 text-brand-700" : "bg-slate-50 text-navy-900"
+                )}
+              >
+                <Route className="h-5 w-5 text-brand-600" />
                 <span>Tracking Flow</span>
               </Link>
 
               <Link
                 href="/tracking-map"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-3 p-3 rounded-xl bg-brand-50 text-navy-900 font-semibold"
+                className={clsx(
+                  "flex items-center gap-3 p-3 rounded-xl font-semibold",
+                  pathname === "/tracking-map" ? "bg-brand-50 text-brand-700" : "bg-slate-50 text-navy-900"
+                )}
               >
                 <MapPin className="h-5 w-5 text-brand-600" />
                 <span>Tracking Map</span>
@@ -460,15 +482,6 @@ export function Navbar({ onOpenDemo }: NavbarProps) {
               >
                 <WifiOff className="h-5 w-5 text-brand-600" />
                 <span>Offline-First Engine</span>
-              </a>
-
-              <a
-                href="/#route-story"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 text-navy-900 font-semibold"
-              >
-                <Route className="h-5 w-5 text-brand-600" />
-                <span>Route Timeline & Visits</span>
               </a>
 
               <a

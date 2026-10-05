@@ -8,7 +8,6 @@ import { ProblemSection } from "@/components/problem/ProblemSection";
 import { ProductPillars } from "@/components/features/ProductPillars";
 import { LiveTrackingShowcase } from "@/components/live-tracking/LiveTrackingShowcase";
 import { OfflineFirstSection } from "@/components/offline-tracking/OfflineFirstSection";
-import { RouteStorySection } from "@/components/route-story/RouteStorySection";
 import { FieldVisibilitySection } from "@/components/visibility/FieldVisibilitySection";
 import { IndustriesPreview } from "@/components/industries/IndustriesPreview";
 import { FinalCTA } from "@/components/final-cta/FinalCTA";
@@ -51,10 +50,7 @@ export default function HomePage() {
         {/* 6. Offline-First Differentiator Section */}
         <OfflineFirstSection />
 
-        {/* 7. Route Story Replay Section */}
-        <RouteStorySection />
-
-        {/* 8. Field Visibility Section (Track -> Understand -> Act) */}
+        {/* 7. Field Visibility Section (Track -> Understand -> Act) */}
         <FieldVisibilitySection />
 
         {/* 9. Industries Preview */}
