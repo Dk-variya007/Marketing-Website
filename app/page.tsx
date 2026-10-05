@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Navbar } from "@/components/navbar/Navbar";
 import { Hero } from "@/components/hero/Hero";
 import { TrustStrip } from "@/components/trust/TrustStrip";
@@ -16,6 +16,10 @@ import { DemoModal } from "@/components/ui/DemoModal";
 
 export default function HomePage() {
   const [demoModalOpen, setDemoModalOpen] = useState(false);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, []);
 
   const handleOpenDemo = () => {
     setDemoModalOpen(true);
