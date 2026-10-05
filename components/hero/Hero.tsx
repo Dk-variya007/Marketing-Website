@@ -34,15 +34,15 @@ export function Hero({ onOpenDemo }: HeroProps) {
     }
   }, [smoothProgress]);
 
-  // When scrolling down, tracking image gets bigger and fully opaque
-  const imageScale = useTransform(smoothProgress, [0, 0.45], [0.72, 1.04]);
-  const imageOpacity = useTransform(smoothProgress, [0, 0.28], [0.35, 1]);
-  const imageY = useTransform(smoothProgress, [0, 0.45], [70, 0]);
+  // When scrolling down, tracking image gets bigger and fully opaque, safely bounded so it never frames out
+  const imageScale = useTransform(smoothProgress, [0, 0.4], [0.82, 0.96]);
+  const imageOpacity = useTransform(smoothProgress, [0, 0.22], [0.65, 1]);
+  const imageY = useTransform(smoothProgress, [0, 0.4], [35, 0]);
 
   return (
     <section
       ref={sectionRef}
-      className="relative pt-28 sm:pt-36 pb-16 sm:pb-24 overflow-hidden min-h-[140vh]"
+      className="relative pt-28 sm:pt-34 pb-14 sm:pb-20 overflow-hidden min-h-[120vh]"
     >
       {/* Rich Tracking-Themed Animated Background */}
       <HeroBackground />
@@ -146,7 +146,7 @@ export function Hero({ onOpenDemo }: HeroProps) {
               y: imageY,
               willChange: "transform, opacity",
             }}
-            className="mt-16 sm:mt-20 w-full max-w-[1000px] mx-auto relative rounded-2xl sm:rounded-3xl"
+            className="mt-10 sm:mt-14 w-full max-w-[820px] mx-auto relative rounded-2xl sm:rounded-3xl"
           >
             {/* Glow effect behind the dashboard */}
             <div className="absolute -inset-4 sm:-inset-8 bg-gradient-to-tr from-brand-600/20 via-blue-500/15 to-purple-500/15 rounded-3xl blur-2xl -z-10" />

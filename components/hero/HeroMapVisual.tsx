@@ -110,7 +110,7 @@ export function HeroMapVisual() {
   const currentAgent = agents[selectedAgentId] || agents.rahul;
 
   return (
-    <div className="relative w-full max-w-[690px] mx-auto lg:max-w-none">
+    <div className="relative w-full mx-auto">
       {/* Outer ambient glow & depth layer */}
       <div className="absolute -inset-4 bg-gradient-to-tr from-brand-600/15 via-blue-500/10 to-emerald-500/10 rounded-3xl blur-2xl -z-10" />
 
@@ -170,7 +170,7 @@ export function HeroMapVisual() {
         </div>
 
         {/* High-Fidelity Cartographic Map Canvas */}
-        <div className="relative w-full h-[420px] sm:h-[490px] lg:h-[530px] bg-[#0c1222] overflow-hidden select-none">
+        <div className="relative w-full h-[320px] sm:h-[380px] lg:h-[420px] bg-[#0c1222] overflow-hidden select-none">
           {/* GIS Coordinates & Grid Ticks */}
           <div className="absolute top-2 left-3 z-10 font-mono text-[10px] text-slate-400/80 pointer-events-none hidden sm:block">
             28°36&apos;44.2&quot;N 77°19&apos;12.8&quot;E • ZOOM 14.8x • HIGH ACCURACY GIS
@@ -478,7 +478,7 @@ export function HeroMapVisual() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 12 }}
               transition={{ duration: 0.25 }}
-              className="absolute top-3 right-3 w-[240px] sm:w-[270px] bg-slate-900/95 backdrop-blur-xl border border-slate-700/90 rounded-2xl p-3.5 shadow-2xl text-white z-30"
+              className="absolute top-2.5 right-2.5 w-[210px] sm:w-[245px] bg-slate-900/95 backdrop-blur-xl border border-slate-700/90 rounded-xl p-2.5 sm:p-3 shadow-2xl text-white z-30"
             >
               <div className="flex items-center justify-between pb-2.5 border-b border-slate-800">
                 <div className="flex items-center gap-2">
