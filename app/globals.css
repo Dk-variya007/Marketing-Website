@@ -1,0 +1,149 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #ffffff;
+  --foreground: #0a0f1d;
+}
+
+html {
+  scroll-behavior: smooth;
+  color-scheme: light;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Subtle background map grid pattern */
+.bg-grid-subtle {
+  background-size: 32px 32px;
+  background-image: 
+    linear-gradient(to right, rgba(15, 23, 42, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(15, 23, 42, 0.04) 1px, transparent 1px);
+}
+
+.bg-grid-dark {
+  background-size: 36px 36px;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+}
+
+/* Custom scrollbar for demo panels */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.02);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.15);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(15, 23, 42, 0.25);
+}
+
+/* Selection */
+::selection {
+  background-color: #3b82f6;
+  color: #ffffff;
+}
+
+/* ═══ Hero Background Animations ═══ */
+@keyframes aurora1 {
+  0%, 100% { transform: translateX(0) translateY(0) scale(1); opacity: 0.4; }
+  33% { transform: translateX(40px) translateY(-20px) scale(1.1); opacity: 0.5; }
+  66% { transform: translateX(-30px) translateY(15px) scale(0.95); opacity: 0.35; }
+}
+
+@keyframes aurora2 {
+  0%, 100% { transform: translateX(0) translateY(0) scale(1); opacity: 0.35; }
+  50% { transform: translateX(-50px) translateY(25px) scale(1.15); opacity: 0.45; }
+}
+
+@keyframes aurora3 {
+  0%, 100% { transform: translateX(0) scale(1); opacity: 0.3; }
+  40% { transform: translateX(60px) scale(1.1); opacity: 0.4; }
+  80% { transform: translateX(-40px) scale(0.9); opacity: 0.25; }
+}
+
+@keyframes radarPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.08); opacity: 0.7; }
+}
+
+.animate-aurora-1 { animation: aurora1 12s ease-in-out infinite; }
+.animate-aurora-2 { animation: aurora2 15s ease-in-out infinite; }
+.animate-aurora-3 { animation: aurora3 18s ease-in-out infinite; }
+.animate-radar-pulse { animation: radarPulse 4s ease-in-out infinite; }
+
+
+/* ═══ Tracking Flow (geo journey) ═══ */
+@keyframes gjPing {
+  0% { transform: scale(1); opacity: 0.55; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+@keyframes gjRing {
+  0% { transform: scale(0.2); opacity: 0.8; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+@keyframes gjBob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-1.5px); }
+}
+@keyframes gjSpeed {
+  0% { transform: translateX(40px); opacity: 0; }
+  30% { opacity: 1; }
+  100% { transform: translateX(-60px); opacity: 0; }
+}
+@keyframes gjSteam {
+  0% { transform: translateY(2px); opacity: 0; }
+  40% { opacity: 0.9; }
+  100% { transform: translateY(-6px); opacity: 0; }
+}
+@keyframes gjLoading {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(160%); }
+}
+@keyframes gjFill {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+@keyframes gjPop {
+  0% { transform: scale(0); }
+  70% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+@keyframes gjDraw {
+  from { stroke-dasharray: 0 400; }
+  to { stroke-dasharray: 400 0; }
+}
+.gj-ping, .gj-ring, .gj-steam {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.gj-ping { animation: gjPing 1.8s ease-out infinite; }
+.gj-ring { animation: gjRing 1.8s ease-out infinite; }
+.gj-steam { animation: gjSteam 2s ease-in-out infinite; }
+.gj-bob { animation: gjBob 0.45s ease-in-out infinite; }
+.gj-speed { animation: gjSpeed 0.7s linear infinite; }
+.gj-loading { animation: gjLoading 1.1s ease-in-out infinite; }
+.gj-fill { animation: gjFill 1.2s ease-out forwards; }
+.gj-pop { transform: scale(0); animation: gjPop 0.35s ease-out forwards; }
+.gj-route-draw:not([stroke-dasharray]) { animation: gjDraw 1.2s ease-out both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .gj-ping, .gj-ring, .gj-steam, .gj-bob, .gj-speed, .gj-loading { animation: none; }
+}
