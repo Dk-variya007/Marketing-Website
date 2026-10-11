@@ -1,7 +1,14 @@
 "use client";
 
 import React, { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { AnimatePresence, motion, MotionValue, useMotionValueEvent, useTransform } from "framer-motion";
+import {
+  AnimatePresence,
+  motion,
+  MotionValue,
+  useMotionValueEvent,
+  useSpring,
+  useTransform,
+} from "framer-motion";
 import type { StatusTone } from "../geo-journey/timeline";
 import { STAGES } from "./stages";
 
@@ -84,7 +91,6 @@ function RoofBuilding({
 }
 
 function ChaiStall({ x, y }: { x: number; y: number }) {
-  // x,y = top-left; 110 × 100
   return (
     <g>
       <rect x={x + 5} y={y + 7} width={110} height={100} rx={8} fill="#0f172a" opacity={0.08} />
@@ -127,7 +133,7 @@ function Callout({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -6 }}
-      transition={{ duration: 0.3, ease: "easeOut" }}
+      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
     >
       <rect x={left} y={y - 20} width={w} height={40} rx={20} fill="#fff" filter="url(#tm-shadow)" />
       <rect x={left} y={y - 20} width={w} height={40} rx={20} fill="none" stroke={color} strokeOpacity={0.35} strokeWidth={1.5} />
@@ -180,7 +186,6 @@ function Rings({ x, y, color, r = 70 }: { x: number; y: number; color: string; r
 }
 
 function TopScooter({ rider }: { rider: boolean }) {
-  // Drawn pointing "up" (−y), centred on 0,0.
   return (
     <g>
       <ellipse cx={3} cy={4} rx={14} ry={28} fill="#0f172a" opacity={0.18} />
@@ -468,6 +473,7 @@ interface MapTileProps {
   isLast: boolean;
 }
 
+
 export function MapTile({ stage, progress, step, tone, synced, isFirst, isLast }: MapTileProps) {
   const cfg = STAGES[stage];
   const fullPath = `${cfg.enterPath} ${cfg.exitPath}`.trim();
@@ -479,7 +485,7 @@ export function MapTile({ stage, progress, step, tone, synced, isFirst, isLast }
   const geo = useRef({ len: 1, fs: 0 });
   const [zone, setZone] = useState<{ from: number; to: number; dots: { frac: number; x: number; y: number }[] } | null>(null);
 
-  // Scroll progress of this tile → position along the road (0..1).
+  // Raw path fraction derived from scroll progress.
   const f = useTransform(progress, (p) => {
     const { fs } = geo.current;
     if (cfg.hasEnter && p < 0.45) return p <= 0.3 ? 0 : (fs * (p - 0.3)) / 0.15;
@@ -487,13 +493,22 @@ export function MapTile({ stage, progress, step, tone, synced, isFirst, isLast }
     return fs;
   });
 
-  // Only one scooter is visible at a time across the stacked tiles.
+  // Apply a light spring to the raw value so the scooter glides rather than
+  // teleporting, while still being responsive enough to feel direct.
+  // Spring config: low mass, moderate stiffness → snappy but not instant.
+  const fSmooth = useSpring(f, { stiffness: 280, damping: 30, mass: 0.8 });
+
+  // Visibility: only show the scooter during its tile's scroll range.
   const scooterOpacity = useTransform(progress, (p) => {
     let o = 1;
+    // hasEnter: hidden before the scooter "arrives" at the top of the tile.
     if (cfg.hasEnter && p < 0.3) o = 0;
+    // hasExit: hidden after the scooter "leaves" at the bottom.
     if (cfg.hasExit && p > 0.8) o = 0;
-    if (!cfg.hasEnter && !isFirst) o *= Math.min(1, Math.max(0, (p - 0.32) / 0.08));
-    if (!cfg.hasExit && !isLast) o *= 1 - Math.min(1, Math.max(0, (p - 0.6) / 0.08));
+    // Non-enter, non-first: fade in gently.
+    if (!cfg.hasEnter && !isFirst) o *= Math.min(1, Math.max(0, (p - 0.32) / 0.10));
+    // Non-exit, non-last: fade out gently.
+    if (!cfg.hasExit && !isLast) o *= 1 - Math.min(1, Math.max(0, (p - 0.62) / 0.10));
     return o;
   });
 
@@ -503,8 +518,11 @@ export function MapTile({ stage, progress, step, tone, synced, isFirst, isLast }
     const { len } = geo.current;
     const at = Math.max(0, Math.min(len, v * len));
     const pt = path.getPointAtLength(at);
-    const a = at + 2 <= len ? path.getPointAtLength(at + 2) : pt;
-    const b = at + 2 <= len ? pt : path.getPointAtLength(Math.max(0, at - 2));
+    // Sample two adjacent points to get a smooth tangent angle.
+    const ahead = Math.min(len, at + 3);
+    const behind = Math.max(0, at - 3);
+    const a = path.getPointAtLength(ahead);
+    const b = path.getPointAtLength(behind);
     const angle = len < 1 ? 90 : (Math.atan2(a.y - b.y, a.x - b.x) * 180) / Math.PI;
     scooterRef.current?.setAttribute("transform", `translate(${pt.x} ${pt.y}) rotate(${angle + 90})`);
     labelRef.current?.setAttribute("transform", `translate(${pt.x} ${pt.y - 48})`);
@@ -532,19 +550,27 @@ export function MapTile({ stage, progress, step, tone, synced, isFirst, isLast }
       });
       setZone({ from, to, dots });
     }
-    place(f.get());
+    // Position immediately on mount.
+    place(fSmooth.get());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fullPath]);
 
-  useMotionValueEvent(f, "change", place);
+  // Drive the scooter position on every animation frame.
+  useMotionValueEvent(fSmooth, "change", place);
 
   const off = offBike(stage, step);
   const compact = useIsCompact();
-  // Hide the zero-length trail (round caps would otherwise draw a dot).
-  const trailOpacity = useTransform(f, (v) => (v > 0.002 ? 1 : 0));
+  // Suppress the zero-length trail dot at the very start.
+  const trailOpacity = useTransform(fSmooth, (v) => (v > 0.004 ? 1 : 0));
 
   return (
-    <svg viewBox={`${compact ? -70 : 0} 0 ${VB_W} ${VB_H}`} preserveAspectRatio="xMidYMid slice" className="absolute inset-0 h-full w-full" role="img" aria-label={`Map view, stage ${stage + 1}`}>
+    <svg
+      viewBox={`${compact ? -70 : 0} 0 ${VB_W} ${VB_H}`}
+      preserveAspectRatio="xMidYMid slice"
+      className="absolute inset-0 h-full w-full"
+      role="img"
+      aria-label={`Map view, stage ${stage + 1}`}
+    >
       {stage === 3 && (
         <defs>
           <clipPath id="tm-zone-clip">
@@ -560,30 +586,63 @@ export function MapTile({ stage, progress, step, tone, synced, isFirst, isLast }
       <path d={fullPath} stroke="#cbd5e1" strokeWidth={46} fill="none" strokeLinecap="round" strokeLinejoin="round" />
       <path ref={pathRef} d={fullPath} stroke="#ffffff" strokeWidth={38} fill="none" strokeLinecap="round" strokeLinejoin="round" />
       <path d={fullPath} stroke="#e2e8f0" strokeWidth={2} strokeDasharray="14 14" fill="none" />
+      {/* Hidden path used only to measure the enter segment length */}
       <path ref={enterRef} d={cfg.enterPath} fill="none" stroke="none" />
 
-      {/* Travelled route */}
-      <motion.path d={fullPath} stroke="#93c5fd" strokeOpacity={0.45} strokeWidth={18} fill="none" strokeLinecap="round" strokeLinejoin="round" style={{ pathLength: f, opacity: trailOpacity }} />
-      <motion.path d={fullPath} stroke="#2563eb" strokeWidth={8} fill="none" strokeLinecap="round" strokeLinejoin="round" style={{ pathLength: f, opacity: trailOpacity }} />
+      {/* Travelled route — drawn progressively as the scooter moves */}
+      <motion.path
+        d={fullPath}
+        stroke="#93c5fd"
+        strokeOpacity={0.45}
+        strokeWidth={18}
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={{ pathLength: fSmooth, opacity: trailOpacity }}
+      />
+      <motion.path
+        d={fullPath}
+        stroke="#2563eb"
+        strokeWidth={8}
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={{ pathLength: fSmooth, opacity: trailOpacity }}
+      />
+
+      {/* Offline section highlighted in amber */}
       {zone && (
         <motion.g clipPath="url(#tm-zone-clip)" animate={{ opacity: synced ? 0 : 1 }} transition={{ duration: 0.6 }}>
-          <motion.path d={fullPath} stroke="#f59e0b" strokeWidth={8} fill="none" strokeLinecap="round" strokeLinejoin="round" style={{ pathLength: f }} />
+          <motion.path
+            d={fullPath}
+            stroke="#f59e0b"
+            strokeWidth={8}
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{ pathLength: fSmooth }}
+          />
         </motion.g>
       )}
-      {zone?.dots.map((d) => <ZoneDot key={d.frac} f={f} x={d.x} y={d.y} frac={d.frac} synced={synced} />)}
+      {zone?.dots.map((d) => <ZoneDot key={d.frac} f={fSmooth} x={d.x} y={d.y} frac={d.frac} synced={synced} />)}
 
+      {/* Start marker (stage 1 only) */}
       {isFirst && <circle cx={420} cy={330} r={9} fill="#fff" stroke="#2563eb" strokeWidth={4} />}
 
       <StageOverlay stage={stage} step={step} synced={synced} />
 
-      {/* Scooter + rider, placed along the road by scroll */}
+      {/* ── Scooter + rider, positioned along the road by scroll ── */}
       <motion.g style={{ opacity: scooterOpacity }}>
         <g ref={scooterRef}>
-          {!off && tone !== "idle" && <circle className="gj-ping" cx={0} cy={0} r={26} fill={TONE_HEX[tone]} opacity={0.3} />}
+          {/* Pulse ring around scooter when active */}
+          {!off && tone !== "idle" && (
+            <circle className="gj-ping" cx={0} cy={0} r={26} fill={TONE_HEX[tone]} opacity={0.3} />
+          )}
           <g transform="scale(1.25)">
             <TopScooter rider={!off} />
           </g>
         </g>
+        {/* "Rahul" name label — hidden when off the bike */}
         <g ref={labelRef} opacity={off ? 0 : 1} style={{ transition: "opacity 0.3s" }}>
           <rect x={-40} y={-16} width={80} height={28} rx={14} fill="#0f172a" />
           <circle cx={-24} cy={-2} r={4.5} fill={TONE_HEX[tone]} />
@@ -593,7 +652,7 @@ export function MapTile({ stage, progress, step, tone, synced, isFirst, isLast }
         </g>
       </motion.g>
 
-      {/* Rahul off the scooter (on break, inside the visit, etc.) */}
+      {/* Rahul avatar — shown when off the bike (break, visit, etc.) */}
       <AnimatePresence>
         {off && (
           <motion.g
@@ -601,7 +660,7 @@ export function MapTile({ stage, progress, step, tone, synced, isFirst, isLast }
             initial={{ opacity: 0, x: off.x, y: off.y }}
             animate={{ opacity: 1, x: off.x, y: off.y }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.6, ease: "easeInOut" }}
+            transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
           >
             <Avatar tone={tone} />
           </motion.g>

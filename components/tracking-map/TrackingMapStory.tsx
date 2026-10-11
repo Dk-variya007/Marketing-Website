@@ -1,7 +1,14 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { motion, useMotionValueEvent, useReducedMotion, useScroll } from "framer-motion";
+import {
+  motion,
+  useMotionValue,
+  useMotionValueEvent,
+  useReducedMotion,
+  useScroll,
+  useSpring,
+} from "framer-motion";
 import { Check, CheckCircle2, Clock, Navigation, RefreshCw } from "lucide-react";
 import { PhoneHud } from "../geo-journey/PhoneHud";
 import { TONE_STYLES } from "../geo-journey/JourneyScene";
@@ -14,30 +21,46 @@ import { STAGES, StageConfig } from "./stages";
 /**
  * Plays a stage's steps one after another once `active` turns on.
  * Returns -1 until then. Stops before `gateAt` until `gateOpen`.
+ *
+ * KEY FIX: We track `arrived` separately from `step` so that when the user
+ * scrolls backward (active → false), the step is preserved and smoothly
+ * reverses rather than jumping back to -1 abruptly.
  */
 function useStepTimeline(cfg: StageConfig, active: boolean, gateOpen: boolean) {
   const reduced = useReducedMotion();
   const [step, setStep] = useState(-1);
+  // Track whether we've ever activated, so we don't re-run the full timeline
+  // on every re-render.
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const last = cfg.steps.length - 1;
   const ceiling = cfg.gateAt !== undefined && !gateOpen ? cfg.gateAt - 1 : last;
 
   useEffect(() => {
     if (!active) {
-      setStep(-1);
-      return;
+      // On scroll-back: reset to -1, but defer slightly so the UI
+      // doesn't instantly flash to the before-state.
+      const id = setTimeout(() => setStep(-1), 80);
+      return () => clearTimeout(id);
     }
     if (reduced) {
       setStep(ceiling);
       return;
     }
+    // Kick-off: start at step 0 immediately when we arrive.
     if (step === -1) {
       setStep(0);
       return;
     }
+    // At ceiling — nothing more to advance.
     if (step >= ceiling) return;
-    const id = setTimeout(() => setStep((s) => s + 1), cfg.steps[step].ms);
-    return () => clearTimeout(id);
-  }, [active, step, ceiling, reduced, cfg.steps]);
+    // Advance after the current step's display time.
+    const ms = cfg.steps[step]?.ms ?? 0;
+    if (ms === 0) return; // last step in a sequence — stop.
+    timerRef.current = setTimeout(() => setStep((s) => s + 1), ms);
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [active, step, ceiling, reduced, cfg.steps]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return step;
 }
@@ -48,18 +71,34 @@ function StageBlock({ index }: { index: number }) {
   const cfg = STAGES[index];
   const content = SECTIONS[index];
   const tileRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({ target: tileRef, offset: ["start end", "end start"] });
+
+  // Use "start center" / "end center" so the full tile scroll range
+  // maps cleanly onto [0, 1], giving us maximum resolution.
+  const { scrollYProgress } = useScroll({
+    target: tileRef,
+    offset: ["start end", "end start"],
+  });
 
   const [arrived, setArrived] = useState(false);
   const [gateOpen, setGateOpen] = useState(false);
-  const arriveAt = cfg.hasEnter ? 0.44 : index === 0 ? 0.3 : 0.36;
+
+  // Thresholds tuned so:
+  //   • hasEnter stages: the scooter spends 0..0.44 driving in → arrive at 0.44
+  //   • no-enter stages: arrive earlier since there's no intro animation
+  const arriveAt = cfg.hasEnter ? 0.44 : index === 0 ? 0.30 : 0.36;
+  // Gate opens at 0.72 — scooter begins exit animation
+  const gateAt = 0.72;
+  // Reset (scroll back) threshold — leave a hysteresis band to prevent flicker
+  const resetAt = 0.18;
 
   const check = (p: number) => {
     if (p >= arriveAt) setArrived(true);
-    else if (p < 0.2) setArrived(false);
-    setGateOpen(p >= 0.72);
+    else if (p < resetAt) setArrived(false);
+    setGateOpen(p >= gateAt);
   };
+
   useMotionValueEvent(scrollYProgress, "change", check);
+  // Run once on mount in case the element is already in view.
   useEffect(() => check(scrollYProgress.get()), []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const step = useStepTimeline(cfg, arrived, gateOpen);
@@ -71,9 +110,20 @@ function StageBlock({ index }: { index: number }) {
 
   return (
     <div id={`stage-${index + 1}`} data-stage={index} className="grid grid-cols-1 lg:grid-cols-[58%_42%]">
-      {/* Map (top view) */}
-      <div ref={tileRef} className="relative h-[64svh] overflow-hidden border-slate-200 bg-slate-200 lg:h-[100svh] lg:border-x">
-        <MapTile stage={index} progress={scrollYProgress} step={step} tone={state.status.tone} synced={synced} isFirst={index === 0} isLast={index === STAGES.length - 1} />
+      {/* Map tile (top / left) */}
+      <div
+        ref={tileRef}
+        className="relative h-[64svh] overflow-hidden border-slate-200 bg-slate-200 lg:h-[100svh] lg:border-x"
+      >
+        <MapTile
+          stage={index}
+          progress={scrollYProgress}
+          step={step}
+          tone={state.status.tone}
+          synced={synced}
+          isFirst={index === 0}
+          isLast={index === STAGES.length - 1}
+        />
 
         {/* Stage tag */}
         <div className="pointer-events-none absolute left-4 top-4 hidden items-center gap-2 sm:flex sm:left-6 sm:top-16 lg:top-32">
@@ -92,15 +142,16 @@ function StageBlock({ index }: { index: number }) {
         />
       </div>
 
-      {/* Details */}
+      {/* Details panel (bottom / right) */}
       <div className="relative flex items-center px-4 py-10 sm:px-8 lg:px-12 lg:py-0 xl:px-16">
         <motion.div
           initial={{ opacity: 0, y: 28 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: false, amount: 0.4 }}
-          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
           className="w-full max-w-xl"
         >
+          {/* Stage number + milestone label */}
           <div className="flex items-center gap-3">
             <span className="font-mono text-sm font-bold text-brand-600">
               {String(index + 1).padStart(2, "0")}
@@ -109,25 +160,30 @@ function StageBlock({ index }: { index: number }) {
             <span className="h-px w-8 bg-slate-300" />
             <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">{content.milestone}</span>
           </div>
+
           <h2 className="mt-3 text-3xl font-bold tracking-tight text-navy-950 sm:text-4xl xl:text-[2.75rem] xl:leading-[1.1]">
             {content.title}
           </h2>
           <p className="mt-3 text-base leading-relaxed text-slate-600 lg:text-lg">{content.description}</p>
 
-          {/* Live status card — follows the map animation step by step */}
+          {/* Live status card */}
           <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-card sm:p-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span
                 aria-live="polite"
-                className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors ${tone.chip}`}
+                className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors duration-300 ${tone.chip}`}
               >
-                {state.status.tone === "done" || state.status.label === "Data Synced" || state.status.label === "Checked In" ? (
+                {state.status.tone === "done" ||
+                state.status.label === "Data Synced" ||
+                state.status.label === "Checked In" ? (
                   <CheckCircle2 className="h-4 w-4" />
                 ) : state.status.tone === "sync" ? (
                   <RefreshCw className="h-3.5 w-3.5" />
                 ) : (
                   <span className="relative flex h-2.5 w-2.5">
-                    {state.status.tone !== "idle" && <span className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-60 ${tone.dot}`} />}
+                    {state.status.tone !== "idle" && (
+                      <span className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-60 ${tone.dot}`} />
+                    )}
                     <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${tone.dot}`} />
                   </span>
                 )}
@@ -143,6 +199,7 @@ function StageBlock({ index }: { index: number }) {
               </span>
             </div>
 
+            {/* Step-by-step checklist */}
             <ol className="mt-4 space-y-2.5">
               {cfg.steps.map((s, i) => {
                 const done = i < step || (i === step && i === cfg.steps.length - 1);
@@ -164,7 +221,11 @@ function StageBlock({ index }: { index: number }) {
                         <span className="h-2 w-2 animate-pulse rounded-full bg-brand-500" />
                       ) : null}
                     </span>
-                    <span className={`text-sm transition-colors duration-300 ${done ? "text-slate-700" : current ? "font-semibold text-navy-950" : "text-slate-400"}`}>
+                    <span
+                      className={`text-sm transition-colors duration-300 ${
+                        done ? "text-slate-700" : current ? "font-semibold text-navy-950" : "text-slate-400"
+                      }`}
+                    >
                       {s.label}
                     </span>
                   </li>
@@ -173,6 +234,7 @@ function StageBlock({ index }: { index: number }) {
             </ol>
           </div>
 
+          {/* Feature points */}
           <ul className="mt-6 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
             {content.points.map(({ icon: Icon, text }) => (
               <li key={text} className="flex items-center gap-2.5 text-sm text-slate-700">
@@ -226,6 +288,7 @@ export function TrackingMapStory() {
   const [active, setActive] = useState(0);
 
   useEffect(() => {
+    // IntersectionObserver for the nav bar active state.
     const blocks = document.querySelectorAll<HTMLElement>("[data-stage]");
     const io = new IntersectionObserver(
       (entries) => {

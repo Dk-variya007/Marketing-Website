@@ -143,6 +143,20 @@ body {
 .gj-pop { transform: scale(0); animation: gjPop 0.35s ease-out forwards; }
 .gj-route-draw:not([stroke-dasharray]) { animation: gjDraw 1.2s ease-out both; }
 
+/* Slow spin for GPS acquisition indicator */
+@keyframes spinSlow {
+  to { transform: rotate(360deg); }
+}
+.animate-spin-slow { animation: spinSlow 2.5s linear infinite; }
+
+/* Tracking-map specific: gentle trail pulse on the scooter dot */
+@keyframes tmPulse {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 0.55; }
+}
+.tm-pulse { animation: tmPulse 1.4s ease-in-out infinite; }
+
 @media (prefers-reduced-motion: reduce) {
   .gj-ping, .gj-ring, .gj-steam, .gj-bob, .gj-speed, .gj-loading { animation: none; }
+  .animate-spin-slow, .tm-pulse { animation: none; }
 }
