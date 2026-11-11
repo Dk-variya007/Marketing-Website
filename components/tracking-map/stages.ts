@@ -1,157 +1,112 @@
-// Per-stage data for the top-view Tracking Map page.
-// Each stage = one full-height block: map tile (left) + status/details (right).
+import type React from "react";
+import {
+  BatteryCharging,
+  CheckCircle2,
+  ClipboardCheck,
+  Clock,
+  CloudUpload,
+  Coffee,
+  Database,
+  FileText,
+  Flag,
+  History,
+  LocateFixed,
+  MapPin,
+  MapPinCheck,
+  PauseCircle,
+  PlayCircle,
+  Power,
+  Route,
+  Satellite,
+  Send,
+  ShieldCheck,
+  Smartphone,
+  WifiOff,
+} from "lucide-react";
 
-import type { PhoneScreen, StatusTone } from "../geo-journey/timeline";
+export type Point = { icon: React.ElementType; text: string };
 
-export interface StageStep {
-  /** Shown in the right-side step list */
-  label: string;
-  phone: PhoneScreen;
-  status: { tone: StatusTone; label: string };
-  /** How long this step is shown before the next one starts (ms) */
-  ms: number;
-}
-
-export interface StageConfig {
-  /** Road from the top edge of the tile to the stop. Must start with M. */
-  enterPath: string;
-  /** Road from the stop onward. Must continue the same path (C/L commands). */
-  exitPath: string;
-  /** Scooter drives in from the tile above */
-  hasEnter: boolean;
-  /** Scooter drives out to the tile below */
-  hasExit: boolean;
-  /** State before the scooter arrives at the stop */
-  before: { phone: PhoneScreen; status: { tone: StatusTone; label: string } };
-  steps: StageStep[];
-  /** Step that waits for the scooter to leave the zone (offline → sync) */
-  gateAt?: number;
-  clock: string;
-  km: number;
-  network: (step: number) => boolean;
-}
-
-const S = {
-  idle: { tone: "idle", label: "Ready to start" },
-  perm: { tone: "idle", label: "Awaiting location permission" },
-  gps: { tone: "sync", label: "Initializing GPS" },
-  active: { tone: "active", label: "Tracking Active" },
-  arrivedBreak: { tone: "active", label: "Arrived at break spot" },
-  break: { tone: "break", label: "Break Mode" },
-  breakEnd: { tone: "break", label: "Break ended" },
-  noNet: { tone: "offline", label: "No internet connection" },
-  offline: { tone: "offline", label: "Offline Tracking Active" },
-  syncing: { tone: "sync", label: "Back online · Syncing" },
-  synced: { tone: "sync", label: "Data Synced" },
-  atVisit: { tone: "visit", label: "At Visit Location" },
-  checkedIn: { tone: "visit", label: "Checked In" },
-  visitDone: { tone: "done", label: "Visit Completed Successfully" },
-  stopping: { tone: "idle", label: "Stopping tracking" },
-  finalLoc: { tone: "idle", label: "Final location recorded" },
-  complete: { tone: "done", label: "Journey Completed" },
-} as const;
-
-export const STAGES: StageConfig[] = [
-  // 01 — Start tracking at the field office
+export const SECTIONS: {
+  milestone: string;
+  title: string;
+  description: string;
+  points: Point[];
+}[] = [
   {
-    enterPath: "M420,330",
-    exitPath: "C420,430 300,450 300,545 C300,630 420,650 420,710 L420,800",
-    hasEnter: false,
-    hasExit: true,
-    before: { phone: "home", status: S.idle },
-    steps: [
-      { label: "Open the app and tap Start Tracking", phone: "home", status: S.idle, ms: 1500 },
-      { label: "Allow location permission", phone: "permission", status: S.perm, ms: 1700 },
-      { label: "GPS locks the current location", phone: "gps", status: S.gps, ms: 1700 },
-      { label: "Tracking started — ride begins", phone: "started", status: S.active, ms: 0 },
+    milestone: "Start",
+    title: "Start Tracking",
+    description:
+      "Start your journey with a single tap. Once location permission is granted, the application begins tracking your journey in the background.",
+    points: [
+      { icon: ShieldCheck, text: "Location permission requested once" },
+      { icon: Satellite, text: "GPS locks your current location" },
+      { icon: Smartphone, text: "Keeps tracking in the background" },
+      { icon: PlayCircle, text: "Journey starts with one tap" },
+      { icon: LocateFixed, text: "Real-time location updates" },
     ],
-    clock: "9:02 AM",
-    km: 0,
-    network: () => true,
   },
-  // 02 — Break at the chai stall
   {
-    enterPath: "M420,0 L420,110 C420,220 340,240 340,350 L340,400",
-    exitPath: "C340,520 420,560 420,680 L420,800",
-    hasEnter: true,
-    hasExit: false,
-    before: { phone: "tracking", status: S.active },
-    steps: [
-      { label: "Arrive and park at Chai Point", phone: "tracking", status: S.arrivedBreak, ms: 1400 },
-      { label: "Start break from the app", phone: "onBreak", status: S.break, ms: 1600 },
-      { label: "Tracking paused · break timer running", phone: "onBreak", status: S.break, ms: 0 },
+    milestone: "Break",
+    title: "Take a Break",
+    description:
+      "Need a short break? Pause your journey when required and continue tracking when you're ready to move again.",
+    points: [
+      { icon: Coffee, text: "Take a break anywhere on the route" },
+      { icon: PauseCircle, text: "Tracking pauses temporarily" },
+      { icon: Clock, text: "Break duration recorded automatically" },
+      { icon: PlayCircle, text: "Resume whenever you're ready" },
+      { icon: History, text: "Journey timeline stays organized" },
     ],
-    clock: "11:05 AM",
-    km: 5.8,
-    network: () => true,
   },
-  // 03 — Resume from the same stall
   {
-    enterPath: "M420,0 L420,40 C420,130 340,150 340,240",
-    exitPath: "C340,400 540,420 540,560 C540,680 420,700 420,800",
-    hasEnter: false,
-    hasExit: true,
-    before: { phone: "onBreak", status: S.break },
-    steps: [
-      { label: "Finish break · 15 min recorded", phone: "onBreak", status: S.breakEnd, ms: 1500 },
-      { label: "Back on the scooter", phone: "onBreak", status: S.breakEnd, ms: 1200 },
-      { label: "Tracking resumed on the same journey", phone: "resumed", status: S.active, ms: 0 },
+    milestone: "Resume",
+    title: "Tracking Resumed",
+    description:
+      "Your break is over. Resume tracking and continue your journey without losing the flow of your workday.",
+    points: [
+      { icon: PlayCircle, text: "Tracking resumed in one tap" },
+      { icon: LocateFixed, text: "Location updates active again" },
+      { icon: Route, text: "Journey continues on the same route" },
+      { icon: History, text: "Previous journey context maintained" },
     ],
-    clock: "11:20 AM",
-    km: 5.8,
-    network: () => true,
   },
-  // 04 — Offline zone
   {
-    enterPath: "M420,0 C420,120 500,160 500,280 L500,400",
-    exitPath: "L500,520 C500,640 420,680 420,800",
-    hasEnter: true,
-    hasExit: true,
-    before: { phone: "tracking", status: S.active },
-    steps: [
-      { label: "Network drops mid-ride", phone: "noNet", status: S.noNet, ms: 1400 },
-      { label: "Offline tracking kicks in", phone: "offline", status: S.offline, ms: 1400 },
-      { label: "Location points saved on device", phone: "offline", status: S.offline, ms: 600 },
-      { label: "Network back · syncing points", phone: "syncing", status: S.syncing, ms: 1300 },
-      { label: "Data synced — no gaps in route", phone: "synced", status: S.synced, ms: 0 },
+    milestone: "Offline",
+    title: "Track Even Without Internet",
+    description:
+      "No internet connection? Your journey can continue. Location data is stored securely on the device and synchronized when connectivity is restored.",
+    points: [
+      { icon: Satellite, text: "GPS keeps working without data" },
+      { icon: Database, text: "Location points stored locally" },
+      { icon: WifiOff, text: "No internet needed to capture locations" },
+      { icon: CloudUpload, text: "Automatic sync when network returns" },
+      { icon: BatteryCharging, text: "No interruption to the journey" },
     ],
-    gateAt: 3,
-    clock: "1:35 PM",
-    km: 11.8,
-    network: (step) => step < 0 || step >= 3,
   },
-  // 05 — Visit check-in
   {
-    enterPath: "M420,0 L420,100 C420,220 520,260 520,380 L520,420",
-    exitPath: "C520,560 420,600 420,700 L420,800",
-    hasEnter: true,
-    hasExit: false,
-    before: { phone: "tracking", status: S.active },
-    steps: [
-      { label: "Enter the visit geofence", phone: "arrive", status: S.atVisit, ms: 1500 },
-      { label: "Check in — location verified", phone: "checkedIn", status: S.checkedIn, ms: 1500 },
-      { label: "Complete the visit activity", phone: "visitForm", status: S.checkedIn, ms: 2400 },
-      { label: "Submit · visit completed", phone: "visitDone", status: S.visitDone, ms: 0 },
+    milestone: "Visit",
+    title: "Check In to Your Visit",
+    description:
+      "Reach your destination, check in to the visit, complete the required activity, and submit the visit details.",
+    points: [
+      { icon: MapPin, text: "Visit location detected on arrival" },
+      { icon: MapPinCheck, text: "Location-verified check-in" },
+      { icon: ClipboardCheck, text: "Complete the visit activity" },
+      { icon: FileText, text: "Add notes, orders and photos" },
+      { icon: Send, text: "Submit with completion confirmation" },
     ],
-    clock: "3:20 PM",
-    km: 18.4,
-    network: () => true,
   },
-  // 06 — Stop tracking
   {
-    enterPath: "M420,0 L420,100 C420,200 520,220 520,330",
-    exitPath: "",
-    hasEnter: false,
-    hasExit: false,
-    before: { phone: "visitDone", status: S.visitDone },
-    steps: [
-      { label: "Review the day and tap Stop Tracking", phone: "summary", status: S.active, ms: 1500 },
-      { label: "Final location saved", phone: "stopping", status: S.stopping, ms: 1300 },
-      { label: "Route closed at the final point", phone: "stopping", status: S.finalLoc, ms: 1100 },
-      { label: "Journey completed · summary ready", phone: "complete", status: S.complete, ms: 0 },
+    milestone: "Complete",
+    title: "Stop Tracking",
+    description:
+      "Once your work journey is complete, stop tracking to end the tracking session. Your full day is saved as one clean journey.",
+    points: [
+      { icon: Flag, text: "Final location recorded" },
+      { icon: Route, text: "Journey completed end to end" },
+      { icon: Power, text: "Tracking stopped — no more pings" },
+      { icon: CheckCircle2, text: "Visit marked as completed" },
+      { icon: FileText, text: "Tracking summary for the day" },
     ],
-    clock: "5:05 PM",
-    km: 18.4,
-    network: () => true,
   },
 ];

@@ -10,8 +10,6 @@ import {
   WifiOff,
   EyeOff,
   ArrowDown,
-  CheckCircle2,
-  Sparkles,
 } from "lucide-react";
 
 export function ProblemSection() {

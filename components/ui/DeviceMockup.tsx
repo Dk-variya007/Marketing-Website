@@ -38,7 +38,7 @@ export function PhoneMockup({
       {/* Screen container */}
       <div className="relative w-full h-full rounded-[28px] overflow-hidden bg-white flex flex-col z-20">
         {/* Mobile Status Bar */}
-        <div className="h-9 px-5 pt-2 flex items-center justify-between text-[11px] font-semibold text-slate-700 select-none bg-slate-50/80 backdrop-blur border-b border-slate-100">
+        <div className="h-9 px-5 pt-2 flex items-center justify-between text-[11px] font-semibold text-slate-700 select-none bg-slate-50 border-b border-slate-100">
           <span>09:41</span>
           <div className="flex items-center gap-1.5 text-slate-600">
             <Wifi className="h-3 w-3" />

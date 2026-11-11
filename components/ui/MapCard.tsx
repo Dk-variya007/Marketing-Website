@@ -4,7 +4,7 @@ import React from "react";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { StatusBadge, FieldStatusType } from "./StatusBadge";
-import { Battery, Signal, Navigation, MapPin } from "lucide-react";
+import { Battery, Navigation, MapPin } from "lucide-react";
 
 export interface EmployeeData {
   id: string;
@@ -43,7 +43,7 @@ export function MapCard({
       onClick={onClick}
       className={twMerge(
         clsx(
-          "bg-white/95 backdrop-blur-md rounded-xl border transition-all duration-200 shadow-md",
+          "bg-white/95 rounded-xl border transition-all duration-200 shadow-md",
           selected
             ? "border-brand-500 ring-2 ring-brand-500/20 shadow-lg"
             : "border-slate-200/90 hover:border-slate-300 hover:shadow-lg",

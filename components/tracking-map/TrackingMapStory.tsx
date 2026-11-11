@@ -1,264 +1,284 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { motion, useMotionValueEvent, useReducedMotion, useScroll } from "framer-motion";
+import { AnimatePresence, motion, useMotionValueEvent, useReducedMotion, useScroll, useSpring, useTransform } from "framer-motion";
 import { Check, CheckCircle2, Clock, Navigation, RefreshCw } from "lucide-react";
-import { PhoneHud } from "../geo-journey/PhoneHud";
-import { TONE_STYLES } from "../geo-journey/JourneyScene";
-import { SECTIONS } from "../geo-journey/sections";
-import { MapTile } from "./MapTile";
-import { STAGES, StageConfig } from "./stages";
+import type { StatusTone } from "./types";
+import { PhoneHud } from "./PhoneHud";
+import { SECTIONS } from "./stages";
+import { MapScene, type SceneState } from "./MapScene";
+import {
+  CHAPTERS,
+  CHAPTER_P,
+  TOTAL,
+  TOTAL_KM,
+  TOTAL_WEIGHT,
+  breakMinutes,
+  distanceAt,
+  frameAt,
+  isOffline,
+  isSynced,
+  offBikeAt,
+  storedPoints,
+} from "./journey";
 
-/* ───────────────────────── Step timeline ───────────────────────── */
+const EASE = [0.22, 1, 0.36, 1] as const;
 
-/**
- * Plays a stage's steps one after another once `active` turns on.
- * Returns -1 until then. Stops before `gateAt` until `gateOpen`.
- */
-function useStepTimeline(cfg: StageConfig, active: boolean, gateOpen: boolean) {
-  const reduced = useReducedMotion();
-  const [step, setStep] = useState(-1);
-  const last = cfg.steps.length - 1;
-  const ceiling = cfg.gateAt !== undefined && !gateOpen ? cfg.gateAt - 1 : last;
+const CHIP: Record<StatusTone, { chip: string; dot: string }> = {
+  idle: { chip: "border-slate-400/30 bg-slate-400/10 text-slate-200", dot: "bg-slate-300" },
+  active: { chip: "border-emerald-400/30 bg-emerald-400/10 text-emerald-300", dot: "bg-emerald-400" },
+  break: { chip: "border-amber-400/30 bg-amber-400/10 text-amber-300", dot: "bg-amber-400" },
+  offline: { chip: "border-rose-400/30 bg-rose-400/10 text-rose-300", dot: "bg-rose-400" },
+  sync: { chip: "border-sky-400/30 bg-sky-400/10 text-sky-300", dot: "bg-sky-400" },
+  visit: { chip: "border-violet-400/30 bg-violet-400/10 text-violet-300", dot: "bg-violet-400" },
+  done: { chip: "border-emerald-400/30 bg-emerald-400/10 text-emerald-300", dot: "bg-emerald-400" },
+};
 
-  useEffect(() => {
-    if (!active) {
-      setStep(-1);
-      return;
-    }
-    if (reduced) {
-      setStep(ceiling);
-      return;
-    }
-    if (step === -1) {
-      setStep(0);
-      return;
-    }
-    if (step >= ceiling) return;
-    const id = setTimeout(() => setStep((s) => s + 1), cfg.steps[step].ms);
-    return () => clearTimeout(id);
-  }, [active, step, ceiling, reduced, cfg.steps]);
+/* ─────────────────────────── Story state ─────────────────────────── */
 
-  return step;
+interface View extends SceneState {
+  km: number;
+  offline: boolean;
 }
 
-/* ─────────────────────────── Stage block ─────────────────────────── */
-
-function StageBlock({ index }: { index: number }) {
-  const cfg = STAGES[index];
-  const content = SECTIONS[index];
-  const tileRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({ target: tileRef, offset: ["start end", "end start"] });
-
-  const [arrived, setArrived] = useState(false);
-  const [gateOpen, setGateOpen] = useState(false);
-  const arriveAt = cfg.hasEnter ? 0.44 : index === 0 ? 0.3 : 0.36;
-
-  const check = (p: number) => {
-    if (p >= arriveAt) setArrived(true);
-    else if (p < 0.2) setArrived(false);
-    setGateOpen(p >= 0.72);
+function viewAt(p: number): View {
+  const f = frameAt(p);
+  const cfg = CHAPTERS[f.chapter];
+  const state = f.step >= 0 ? cfg.steps[f.step] : cfg.before;
+  return {
+    chapter: f.chapter,
+    step: f.step,
+    tone: state.status.tone,
+    breakMins: breakMinutes(f),
+    stored: storedPoints(f),
+    synced: isSynced(f),
+    offBike: offBikeAt(f.chapter, f.step),
+    offline: isOffline(f),
+    km: Math.round((TOTAL_KM * f.d) / TOTAL * 10) / 10,
   };
-  useMotionValueEvent(scrollYProgress, "change", check);
-  useEffect(() => check(scrollYProgress.get()), []); // eslint-disable-line react-hooks/exhaustive-deps
+}
 
-  const step = useStepTimeline(cfg, arrived, gateOpen);
-  const state = step >= 0 ? cfg.steps[step] : cfg.before;
-  const tone = TONE_STYLES[state.status.tone];
-  const synced = index === 3 && step >= 4;
-  const network = cfg.network(step);
-  const storedPoints = index === 3 ? (step >= 1 ? 214 : 0) : 0;
+const sameView = (a: View, b: View) =>
+  a.chapter === b.chapter && a.step === b.step && a.breakMins === b.breakMins && a.stored === b.stored && a.km === b.km;
 
+/* ─────────────────────────────── Bits ─────────────────────────────── */
+
+function StatusChip({ tone, label }: { tone: StatusTone; label: string }) {
+  const t = CHIP[tone];
+  const check = tone === "done" || label === "Data Synced" || label === "Checked In";
   return (
-    <div id={`stage-${index + 1}`} data-stage={index} className="grid grid-cols-1 lg:grid-cols-[58%_42%]">
-      {/* Map (top view) */}
-      <div ref={tileRef} className="relative h-[64svh] overflow-hidden border-slate-200 bg-slate-200 lg:h-[100svh] lg:border-x">
-        <MapTile stage={index} progress={scrollYProgress} step={step} tone={state.status.tone} synced={synced} isFirst={index === 0} isLast={index === STAGES.length - 1} />
-
-        {/* Stage tag */}
-        <div className="pointer-events-none absolute left-4 top-4 hidden items-center gap-2 sm:flex sm:left-6 sm:top-16 lg:top-32">
-          <span className="rounded-full bg-navy-950/90 px-3 py-1 font-mono text-[11px] font-bold text-white shadow-lg backdrop-blur">
-            {String(index + 1).padStart(2, "0")} · {content.milestone.toUpperCase()}
-          </span>
-        </div>
-
-        <PhoneHud
-          screen={state.phone}
-          clock={cfg.clock}
-          km={cfg.km}
-          network={network}
-          storedPoints={storedPoints}
-          className="pointer-events-none absolute right-3 top-16 h-[330px] w-[176px] origin-top-right scale-[0.56] sm:right-6 sm:top-16 sm:scale-75 lg:top-32 lg:scale-90 xl:scale-100"
-        />
-      </div>
-
-      {/* Details */}
-      <div className="relative flex items-center px-4 py-10 sm:px-8 lg:px-12 lg:py-0 xl:px-16">
-        <motion.div
-          initial={{ opacity: 0, y: 28 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: false, amount: 0.4 }}
-          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="w-full max-w-xl"
-        >
-          <div className="flex items-center gap-3">
-            <span className="font-mono text-sm font-bold text-brand-600">
-              {String(index + 1).padStart(2, "0")}
-              <span className="text-slate-300"> / 0{STAGES.length}</span>
-            </span>
-            <span className="h-px w-8 bg-slate-300" />
-            <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">{content.milestone}</span>
-          </div>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-navy-950 sm:text-4xl xl:text-[2.75rem] xl:leading-[1.1]">
-            {content.title}
-          </h2>
-          <p className="mt-3 text-base leading-relaxed text-slate-600 lg:text-lg">{content.description}</p>
-
-          {/* Live status card — follows the map animation step by step */}
-          <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-card sm:p-5">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span
-                aria-live="polite"
-                className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors ${tone.chip}`}
-              >
-                {state.status.tone === "done" || state.status.label === "Data Synced" || state.status.label === "Checked In" ? (
-                  <CheckCircle2 className="h-4 w-4" />
-                ) : state.status.tone === "sync" ? (
-                  <RefreshCw className="h-3.5 w-3.5" />
-                ) : (
-                  <span className="relative flex h-2.5 w-2.5">
-                    {state.status.tone !== "idle" && <span className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-60 ${tone.dot}`} />}
-                    <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${tone.dot}`} />
-                  </span>
-                )}
-                {state.status.label}
-              </span>
-              <span className="flex items-center gap-3 text-xs font-medium text-slate-500">
-                <span className="inline-flex items-center gap-1">
-                  <Clock className="h-3.5 w-3.5" /> {cfg.clock}
-                </span>
-                <span className="inline-flex items-center gap-1">
-                  <Navigation className="h-3.5 w-3.5 text-brand-600" /> {cfg.km.toFixed(1)} km
-                </span>
-              </span>
-            </div>
-
-            <ol className="mt-4 space-y-2.5">
-              {cfg.steps.map((s, i) => {
-                const done = i < step || (i === step && i === cfg.steps.length - 1);
-                const current = i === step && !done;
-                return (
-                  <li key={s.label} className="flex items-center gap-3">
-                    <span
-                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-all duration-300 ${
-                        done
-                          ? "border-emerald-500 bg-emerald-500 text-white"
-                          : current
-                            ? "border-brand-500 bg-brand-50"
-                            : "border-slate-200 bg-white"
-                      }`}
-                    >
-                      {done ? (
-                        <Check className="h-3.5 w-3.5" strokeWidth={3} />
-                      ) : current ? (
-                        <span className="h-2 w-2 animate-pulse rounded-full bg-brand-500" />
-                      ) : null}
-                    </span>
-                    <span className={`text-sm transition-colors duration-300 ${done ? "text-slate-700" : current ? "font-semibold text-navy-950" : "text-slate-400"}`}>
-                      {s.label}
-                    </span>
-                  </li>
-                );
-              })}
-            </ol>
-          </div>
-
-          <ul className="mt-6 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-            {content.points.map(({ icon: Icon, text }) => (
-              <li key={text} className="flex items-center gap-2.5 text-sm text-slate-700">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-brand-600 shadow-card">
-                  <Icon className="h-4 w-4" />
-                </span>
-                {text}
-              </li>
-            ))}
-          </ul>
-        </motion.div>
-      </div>
-    </div>
+    <span aria-live="polite" className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors duration-300 sm:text-sm ${t.chip}`}>
+      {check ? (
+        <CheckCircle2 className="h-4 w-4" />
+      ) : tone === "sync" ? (
+        <RefreshCw className="h-3.5 w-3.5 animate-spin-slow" />
+      ) : (
+        <span className="relative flex h-2.5 w-2.5">
+          {tone !== "idle" && <span className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-60 ${t.dot}`} />}
+          <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${t.dot}`} />
+        </span>
+      )}
+      <AnimatePresence mode="popLayout" initial={false}>
+        <motion.span key={label} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.2, ease: EASE }}>
+          {label}
+        </motion.span>
+      </AnimatePresence>
+    </span>
   );
 }
 
-/* ─────────────────────────── Stage bar ─────────────────────────── */
-
-function StageBar({ active }: { active: number }) {
-  const jump = (i: number) => {
-    const el = document.getElementById(`stage-${i + 1}`);
-    if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 40, behavior: "smooth" });
-  };
+function StepList({ chapter, step, compact }: { chapter: number; step: number; compact?: boolean }) {
+  const steps = CHAPTERS[chapter].steps;
   return (
-    <div className="pointer-events-none sticky top-[68px] z-20 h-0">
-      <div className="pointer-events-auto mx-auto w-fit max-w-[calc(100%-24px)] translate-y-3 rounded-full border border-slate-200/80 bg-white/90 p-1 shadow-card-hover backdrop-blur">
-        <ol className="flex items-center gap-0.5 overflow-x-auto">
-          {SECTIONS.map((s, i) => (
-            <li key={s.milestone}>
-              <button
-                onClick={() => jump(i)}
-                aria-current={i === active ? "step" : undefined}
-                className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1.5 text-[11px] font-semibold transition-colors sm:px-3 sm:text-xs ${
-                  i === active ? "bg-brand-600 text-white" : i < active ? "text-brand-700 hover:bg-slate-100" : "text-slate-500 hover:bg-slate-100"
-                }`}
-              >
-                <span className="font-mono">{String(i + 1).padStart(2, "0")}</span>
-                <span className={i === active ? "inline" : "hidden md:inline"}>{s.milestone}</span>
-              </button>
-            </li>
-          ))}
-        </ol>
-      </div>
-    </div>
+    <ol className={compact ? "mt-3 space-y-1.5" : "mt-4 space-y-2.5"}>
+      {steps.map((s, i) => {
+        const done = i < step || (i === step && i === steps.length - 1);
+        const current = i === step && !done;
+        return (
+          <li key={s.label} className="flex items-center gap-3">
+            <span
+              className={`flex shrink-0 items-center justify-center rounded-full border-2 transition-all duration-300 ${compact ? "h-5 w-5" : "h-6 w-6"} ${
+                done ? "border-emerald-400 bg-emerald-400 text-navy-950" : current ? "border-brand-400 bg-brand-500/15" : "border-white/15 bg-white/[0.03]"
+              }`}
+            >
+              {done ? <Check className="h-3 w-3" strokeWidth={3.5} /> : current ? <span className="h-2 w-2 animate-pulse rounded-full bg-brand-400" /> : null}
+            </span>
+            <span className={`transition-colors duration-300 ${compact ? "text-xs" : "text-sm"} ${done ? "text-slate-300" : current ? "font-semibold text-white" : "text-slate-500"}`}>
+              {s.label}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+function ChapterNav({ active, onJump, className = "" }: { active: number; onJump: (i: number) => void; className?: string }) {
+  return (
+    <ol className={`flex items-center gap-1 ${className}`}>
+      {SECTIONS.map((s, i) => (
+        <li key={s.milestone} className="flex-1">
+          <button
+            onClick={() => onJump(i)}
+            aria-label={`Go to ${s.title}`}
+            aria-current={i === active ? "step" : undefined}
+            className="group flex w-full flex-col gap-1.5 text-left"
+          >
+            <span className={`h-1 w-full rounded-full transition-colors duration-300 ${i < active ? "bg-brand-400" : i === active ? "bg-white" : "bg-white/15 group-hover:bg-white/30"}`} />
+            <span className={`hidden text-[10px] font-semibold uppercase tracking-[0.12em] transition-colors sm:block ${i === active ? "text-white" : "text-slate-500 group-hover:text-slate-300"}`}>
+              {s.milestone}
+            </span>
+          </button>
+        </li>
+      ))}
+    </ol>
   );
 }
 
 /* ─────────────────────────────── Story ─────────────────────────────── */
 
 export function TrackingMapStory() {
-  const [active, setActive] = useState(0);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const reduced = useReducedMotion();
+  const { scrollYProgress } = useScroll({ target: trackRef, offset: ["start start", "end end"] });
+  // Smoothed, so wheel steps glide — and a fast flick still passes through every frame of the story.
+  const smooth = useSpring(scrollYProgress, { stiffness: 120, damping: 30, mass: 0.4, restDelta: 0.0001 });
+  const progress = reduced ? scrollYProgress : smooth;
+  const distance = useTransform(progress, (v) => distanceAt(v));
 
-  useEffect(() => {
-    const blocks = document.querySelectorAll<HTMLElement>("[data-stage]");
-    const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => {
-          if (e.isIntersecting) setActive(Number(e.target.getAttribute("data-stage")));
-        });
-      },
-      { rootMargin: "-50% 0px -50% 0px" }
-    );
-    blocks.forEach((b) => io.observe(b));
-    return () => io.disconnect();
-  }, []);
+  const [view, setView] = useState<View>(() => viewAt(0));
+  const sync = (v: number) => {
+    const next = viewAt(v);
+    setView((prev) => (sameView(prev, next) ? prev : next));
+  };
+  useMotionValueEvent(progress, "change", sync);
+  useEffect(() => sync(progress.get()), [progress]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const { chapter, step, km } = view;
+  const cfg = CHAPTERS[chapter];
+  const state = step >= 0 ? cfg.steps[step] : cfg.before;
+  const content = SECTIONS[chapter];
+
+  const jump = (i: number) => {
+    const el = trackRef.current;
+    if (!el) return;
+    const top = el.getBoundingClientRect().top + window.scrollY;
+    window.scrollTo({ top: top + (el.offsetHeight - window.innerHeight) * CHAPTER_P[i], behavior: "smooth" });
+  };
+
+  const phone = (
+    <PhoneHud
+      screen={state.phone}
+      clock={cfg.clock}
+      km={km}
+      network={!view.offline}
+      storedPoints={chapter === 3 ? view.stored : 0}
+      className="h-full w-full"
+    />
+  );
 
   return (
-    <section id="tracking-map" aria-label="Tracking map walkthrough" className="relative bg-slate-50">
-      {/* Shared SVG defs for every map tile */}
-      <svg width="0" height="0" className="absolute" aria-hidden>
-        <defs>
-          <filter id="tm-shadow" x="-20%" y="-40%" width="140%" height="200%">
-            <feDropShadow dx="0" dy="4" stdDeviation="6" floodColor="#0f172a" floodOpacity="0.14" />
-          </filter>
-          <pattern id="tm-hatch" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-            <rect width="14" height="14" fill="#fff1f2" />
-            <line x1="0" y1="0" x2="0" y2="14" stroke="#fecdd3" strokeWidth="5" />
-          </pattern>
-        </defs>
-      </svg>
+    <section id="tracking-map" aria-label="Tracking map walkthrough" className="relative bg-navy-950">
+      <div ref={trackRef} className="relative" style={{ height: `${Math.round(TOTAL_WEIGHT * 60 + 100)}vh` }}>
+        <div className="sticky top-0 h-[100svh] overflow-hidden">
+          {/* Map */}
+          <div className="absolute inset-x-0 bottom-0 top-[68px]">
+            <MapScene distance={distance} state={view} />
+            {/* Edge vignette */}
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_55%,rgba(6,9,19,0.75)_100%)]" />
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-navy-950/80 to-transparent" />
+          </div>
 
-      <StageBar active={active} />
-      <div className="mx-auto max-w-[1440px] lg:px-8">
-        {STAGES.map((_, i) => (
-          <StageBlock key={i} index={i} />
-        ))}
+          {/* Live session tag */}
+          <div className="pointer-events-none absolute left-4 top-[84px] flex items-center gap-2 rounded-full border border-white/10 bg-navy-950/90 px-3 py-1.5 text-[11px] font-semibold text-slate-200 sm:left-6 lg:left-8">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+            </span>
+            LIVE · Rahul S. · Field Sales
+            <span className="hidden text-slate-500 sm:inline">·</span>
+            <span className="hidden font-mono text-slate-400 sm:inline">{km.toFixed(1)} km</span>
+          </div>
+
+          {/* Phone (tablet: top-left under the tag, desktop: bottom-left) */}
+          <div className="pointer-events-none absolute left-6 top-[124px] hidden h-[330px] w-[176px] origin-top-left scale-[0.72] md:block lg:bottom-8 lg:left-8 lg:top-auto lg:origin-bottom-left lg:scale-90 xl:scale-100">
+            {phone}
+          </div>
+
+          {/* Details — side panel on desktop, bottom sheet below lg */}
+          <div className="absolute inset-x-3 bottom-3 sm:inset-x-6 sm:bottom-6 lg:inset-x-auto lg:bottom-auto lg:right-8 lg:top-[calc(50%+34px)] lg:max-h-[calc(100svh-112px)] lg:w-[420px] lg:-translate-y-1/2 xl:w-[460px]">
+            <div className="flex flex-col rounded-2xl border border-white/10 bg-navy-900/[0.96] p-4 shadow-[0_30px_60px_-20px_rgba(0,0,0,0.7)] sm:p-5 lg:rounded-3xl lg:p-7">
+              <ChapterNav active={chapter} onJump={jump} />
+
+              <div className="mt-4 flex flex-col lg:mt-7">
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.div
+                    key={chapter}
+                    initial={{ opacity: 0, y: 14 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.25, ease: EASE }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono text-xs font-bold text-brand-400 sm:text-sm">
+                        {String(chapter + 1).padStart(2, "0")}
+                        <span className="text-slate-600"> / {String(CHAPTERS.length).padStart(2, "0")}</span>
+                      </span>
+                      <span className="h-px w-8 bg-white/15" />
+                      <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400 sm:text-[11px]">{content.milestone}</span>
+                    </div>
+                    <h2 className="mt-2 text-xl font-bold tracking-tight text-white sm:text-2xl lg:mt-3 lg:text-3xl xl:text-[2.1rem] xl:leading-[1.15]">
+                      {content.title}
+                    </h2>
+                    <p className="mt-2 hidden text-sm leading-relaxed text-slate-400 sm:block lg:mt-3 lg:text-[15px]">{content.description}</p>
+                  </motion.div>
+                </AnimatePresence>
+
+                {/* Live status — follows the map step by step */}
+                <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-3 sm:p-4 lg:mt-6 lg:rounded-2xl">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <StatusChip tone={state.status.tone} label={state.status.label} />
+                    <span className="flex items-center gap-3 text-[11px] font-medium text-slate-400 sm:text-xs">
+                      <span className="inline-flex items-center gap-1">
+                        <Clock className="h-3.5 w-3.5" /> {cfg.clock}
+                      </span>
+                      <span className="inline-flex items-center gap-1 font-mono">
+                        <Navigation className="h-3.5 w-3.5 text-brand-400" /> {km.toFixed(1)} km
+                      </span>
+                    </span>
+                  </div>
+                  <div className="hidden sm:block">
+                    <StepList chapter={chapter} step={step} />
+                  </div>
+                  <div className="sm:hidden">
+                    <StepList chapter={chapter} step={step} compact />
+                  </div>
+                </div>
+
+                {/* Feature points (desktop) */}
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.ul
+                    key={chapter}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="mt-6 hidden grid-cols-1 gap-2.5 lg:grid xl:grid-cols-2"
+                  >
+                    {content.points.slice(0, 4).map(({ icon: Icon, text }) => (
+                      <li key={text} className="flex items-center gap-2.5 text-[13px] text-slate-300">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-brand-400">
+                          <Icon className="h-4 w-4" />
+                        </span>
+                        {text}
+                      </li>
+                    ))}
+                  </motion.ul>
+                </AnimatePresence>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   );

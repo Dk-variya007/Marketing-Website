@@ -1,7 +1,10 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { Container } from "../ui/Container";
+import { useDemo } from "../demo/DemoProvider";
+import { SOLUTIONS } from "@/lib/solutions";
 import { SectionHeader } from "../ui/SectionHeader";
 import {
   Briefcase,
@@ -9,17 +12,16 @@ import {
   Truck,
   HardHat,
   ArrowRight,
-  MapPin,
-  Route,
-  Clock,
-  ShieldCheck,
 } from "lucide-react";
 
 interface IndustriesPreviewProps {
-  onOpenDemo: () => void;
+  /** On the home page, link through to /solutions; on /solutions itself, leave it out. */
+  showAllLink?: boolean;
 }
 
-export function IndustriesPreview({ onOpenDemo }: IndustriesPreviewProps) {
+export function IndustriesPreview({ showAllLink = true }: IndustriesPreviewProps) {
+  const { openDemo } = useDemo();
+
   const industries = [
     {
       title: "Field Sales",
@@ -170,8 +172,9 @@ export function IndustriesPreview({ onOpenDemo }: IndustriesPreviewProps) {
           {industries.map((ind) => {
             const Icon = ind.icon;
             return (
-              <div
+              <article
                 key={ind.title}
+                id={SOLUTIONS.find((sol) => sol.name === ind.title)?.id}
                 className="group rounded-3xl border border-slate-200/90 bg-white p-6 shadow-sm hover:shadow-card-hover hover:border-brand-500/40 transition-all duration-300 flex flex-col justify-between"
               >
                 <div>
@@ -210,28 +213,30 @@ export function IndustriesPreview({ onOpenDemo }: IndustriesPreviewProps) {
 
                 <div className="mt-6 pt-4 border-t border-slate-100">
                   <button
-                    onClick={onOpenDemo}
+                    type="button"
+                    onClick={openDemo}
                     className="w-full text-xs font-semibold text-brand-600 hover:text-brand-700 flex items-center justify-center gap-1 group-hover:underline"
                   >
-                    <span>View {ind.title} Blueprint</span>
+                    <span>Get the {ind.title} blueprint</span>
                     <ArrowRight className="h-3 w-3" />
                   </button>
                 </div>
-              </div>
+              </article>
             );
           })}
         </div>
 
-        {/* Link at bottom */}
-        <div className="mt-14 text-center">
-          <button
-            onClick={onOpenDemo}
-            className="inline-flex items-center gap-2 text-sm sm:text-base font-semibold text-brand-600 hover:text-brand-700 hover:underline"
-          >
-            <span>Explore all industry solutions and custom integrations</span>
-            <ArrowRight className="h-4 w-4" />
-          </button>
-        </div>
+        {showAllLink && (
+          <div className="mt-14 text-center">
+            <Link
+              href="/solutions"
+              className="inline-flex items-center gap-2 text-sm sm:text-base font-semibold text-brand-600 hover:text-brand-700 hover:underline"
+            >
+              <span>Explore all industry solutions</span>
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        )}
       </Container>
     </section>
   );

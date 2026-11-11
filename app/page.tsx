@@ -1,74 +1,51 @@
-"use client";
-
-import React, { useState, useEffect } from "react";
-import { Navbar } from "@/components/navbar/Navbar";
+import type { Metadata } from "next";
 import { Hero } from "@/components/hero/Hero";
 import { TrustStrip } from "@/components/trust/TrustStrip";
 import { ProblemSection } from "@/components/problem/ProblemSection";
 import { ProductPillars } from "@/components/features/ProductPillars";
-import { LiveTrackingShowcase } from "@/components/live-tracking/LiveTrackingShowcase";
-import { OfflineFirstSection } from "@/components/offline-tracking/OfflineFirstSection";
+import { TrackingStages } from "@/components/tracking-map/TrackingStages";
+import { EmergencySOSSection } from "@/components/upcoming/EmergencySOSSection";
 import { FieldVisibilitySection } from "@/components/visibility/FieldVisibilitySection";
 import { IndustriesPreview } from "@/components/industries/IndustriesPreview";
 import { FinalCTA } from "@/components/final-cta/FinalCTA";
-import { Footer } from "@/components/footer/Footer";
-import { DemoModal } from "@/components/ui/DemoModal";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { organizationLd, softwareLd, websiteLd } from "@/lib/seo";
+import { siteConfig } from "@/lib/site";
 
+export const metadata: Metadata = {
+  title: { absolute: siteConfig.title },
+  alternates: { canonical: "/" },
+};
+
+// The home page tells the story; the detail lives on each product page.
+//   1. Hero — what Fietra is            5. Field visibility — Track → Understand → Act
+//   2. Trust strip — who it's for       6. Industries — real-world use cases
+//   3. Problem — why it matters         7. Final call to action
+//   4. Products → How tracking works → Emergency SOS + other upcoming features
 export default function HomePage() {
-  const [demoModalOpen, setDemoModalOpen] = useState(false);
-
-  useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
-  }, []);
-
-  const handleOpenDemo = () => {
-    setDemoModalOpen(true);
-  };
-
-  const handleCloseDemo = () => {
-    setDemoModalOpen(false);
-  };
-
   return (
-    <div className="relative min-h-screen bg-white text-navy-950 font-sans selection:bg-brand-600 selection:text-white overflow-x-hidden">
-      {/* Sticky Header Navigation */}
-      <Navbar onOpenDemo={handleOpenDemo} />
-
-      {/* Main Landing Page Content */}
-      <main>
-        {/* 1. Hero Section */}
-        <Hero onOpenDemo={handleOpenDemo} />
-
-        {/* 2. Trust Strip */}
-        <TrustStrip />
-
-        {/* 3. Problem Section */}
-        <ProblemSection />
-
-        {/* 4. Product Pillars (6 Core Feature Cards) */}
-        <ProductPillars />
-
-        {/* 5. Live Tracking Showcase */}
-        <LiveTrackingShowcase />
-
-        {/* 6. Offline-First Differentiator Section */}
-        <OfflineFirstSection />
-
-        {/* 7. Field Visibility Section (Track -> Understand -> Act) */}
-        <FieldVisibilitySection />
-
-        {/* 9. Industries Preview */}
-        <IndustriesPreview onOpenDemo={handleOpenDemo} />
-
-        {/* 11. Final High-Impact CTA */}
-        <FinalCTA onOpenDemo={handleOpenDemo} />
-      </main>
-
-      {/* Footer */}
-      <Footer onOpenDemo={handleOpenDemo} />
-
-      {/* Interactive Book a Demo Modal */}
-      <DemoModal isOpen={demoModalOpen} onClose={handleCloseDemo} />
-    </div>
+    <main id="main" className="overflow-x-clip">
+      <Hero />
+      <TrustStrip />
+      <ProblemSection />
+      <ProductPillars />
+      <TrackingStages
+        id="how-it-works"
+        title={
+          <>
+            One field day. <br />
+            <span className="text-brand-400">Tracked from start to finish.</span>
+          </>
+        }
+        subtitle="Start, break, resume, ride through a dead zone, check in to a visit and close the day — every stage is captured, even without internet."
+      />
+      <EmergencySOSSection showMore />
+      <FieldVisibilitySection />
+      <IndustriesPreview />
+      <FinalCTA />
+      <JsonLd
+        data={[organizationLd, websiteLd, softwareLd(siteConfig.name, siteConfig.description, "/")]}
+      />
+    </main>
   );
 }

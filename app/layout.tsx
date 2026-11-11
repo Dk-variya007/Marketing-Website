@@ -1,6 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { OffscreenAnimationPause } from "@/components/perf/OffscreenAnimationPause";
+import { DemoProvider } from "@/components/demo/DemoProvider";
+import { Navbar } from "@/components/navbar/Navbar";
+import { Footer } from "@/components/footer/Footer";
+import { siteConfig } from "@/lib/site";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -16,39 +21,26 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Fietra | GPS Field Employee Tracking & Workforce Management",
-  description:
-    "Fietra helps businesses manage field teams with GPS employee tracking, attendance, visits, route history and offline-first field workforce management.",
-  keywords: [
-    "field workforce tracking",
-    "GPS employee tracking",
-    "field sales tracking",
-    "live location monitoring",
-    "route history GPS",
-    "field visit verification",
-    "offline tracking",
-    "field staff attendance",
-  ],
-  authors: [{ name: "Fietra Technologies" }],
+  metadataBase: new URL(siteConfig.url),
+  title: { default: siteConfig.title, template: `%s | ${siteConfig.name}` },
+  description: siteConfig.description,
+  applicationName: siteConfig.name,
+  authors: [{ name: siteConfig.legalName }],
+  alternates: { canonical: "/" },
   openGraph: {
-    title: "Fietra | GPS Field Employee Tracking & Workforce Management",
-    description:
-      "Real-time visibility into employee locations, routes, visits, attendance and field activity — even when connectivity isn't available.",
-    url: "https://fietra.com",
-    siteName: "Fietra",
-    locale: "en_US",
+    title: siteConfig.title,
+    description: siteConfig.description,
+    url: "/",
+    siteName: siteConfig.name,
+    locale: siteConfig.locale,
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Fietra | GPS Field Employee Tracking & Workforce Management",
-    description:
-      "Real-time visibility into employee locations, routes, visits, attendance and field activity — even when connectivity isn't available.",
+    title: siteConfig.title,
+    description: siteConfig.description,
   },
-  robots: {
-    index: true,
-    follow: true,
-  },
+  robots: { index: true, follow: true },
 };
 
 export default function RootLayout({
@@ -59,7 +51,18 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.variable}>
       <body className="antialiased bg-white text-navy-900 selection:bg-brand-600 selection:text-white min-h-screen">
-        {children}
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:shadow-lg"
+        >
+          Skip to content
+        </a>
+        <DemoProvider>
+          <Navbar />
+          {children}
+          <Footer />
+        </DemoProvider>
+        <OffscreenAnimationPause />
       </body>
     </html>
   );

@@ -19,7 +19,7 @@ import {
   Square,
   WifiOff,
 } from "lucide-react";
-import type { PhoneScreen } from "./timeline";
+import type { PhoneScreen } from "./types";
 
 interface PhoneHudProps {
   screen: PhoneScreen;

@@ -7,8 +7,6 @@ import {
   Package,
   HardHat,
   Boxes,
-  ShieldCheck,
-  CheckCircle,
 } from "lucide-react";
 
 export function TrustStrip() {

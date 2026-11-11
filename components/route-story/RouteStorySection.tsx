@@ -3,18 +3,13 @@
 import React, { useState } from "react";
 import { Container } from "../ui/Container";
 import { SectionHeader } from "../ui/SectionHeader";
-import { StatusBadge } from "../ui/StatusBadge";
 import {
-  Play,
   MapPin,
   Coffee,
-  CheckCircle,
   Flag,
   Navigation,
   Clock,
   ShieldCheck,
-  ChevronRight,
-  TrendingUp,
 } from "lucide-react";
 
 export function RouteStorySection() {
@@ -147,9 +142,9 @@ export function RouteStorySection() {
 
                     <div className="flex-1">
                       <div className="flex items-center justify-between gap-2">
-                        <h4 className="font-bold text-sm sm:text-base text-navy-900">
+                        <h3 className="font-bold text-sm sm:text-base text-navy-900">
                           {step.title}
-                        </h4>
+                        </h3>
                         <span
                           className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${step.badgeColor}`}
                         >
@@ -396,7 +391,7 @@ export function RouteStorySection() {
               </div>
 
               {/* Bottom Journey HUD */}
-              <div className="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur-md rounded-2xl p-3 sm:p-4 shadow-xl border border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs">
+              <div className="absolute bottom-4 left-4 right-4 bg-white/[0.97] rounded-2xl p-3 sm:p-4 shadow-xl border border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs">
                 <div className="flex items-center gap-3">
                   <div className="h-9 w-9 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center font-bold text-xs">
                     {currentStep.time}

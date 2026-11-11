@@ -2,23 +2,16 @@
 
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { StatusBadge, FieldStatusType } from "../ui/StatusBadge";
+import { FieldStatusType } from "../ui/StatusBadge";
 import {
   Navigation,
   MapPin,
-  Layers,
-  Search,
   Compass,
   CheckCircle2,
-  ShieldCheck,
   Zap,
   Battery,
   Wifi,
-  Clock,
-  ChevronRight,
-  TrendingUp,
   Activity,
-  Crosshair,
 } from "lucide-react";
 
 interface AgentTelemetry {
@@ -112,14 +105,11 @@ export function HeroMapVisual() {
   return (
     <div className="relative w-full mx-auto">
       {/* Outer ambient glow & depth layer */}
-      <div className="absolute -inset-4 bg-gradient-to-tr from-brand-600/15 via-blue-500/10 to-emerald-500/10 rounded-3xl blur-2xl -z-10" />
+      <div className="absolute -inset-6 -z-10 rounded-[40px] bg-[radial-gradient(ellipse_at_30%_70%,rgba(37,99,235,0.16),transparent_60%),radial-gradient(ellipse_at_75%_30%,rgba(16,185,129,0.10),transparent_60%)]" />
 
       {/* Main Terminal Window */}
-      <motion.div
-        initial={{ opacity: 0, y: 22, scale: 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-        className="relative rounded-2xl sm:rounded-3xl border border-slate-300/80 bg-white shadow-2xl overflow-hidden"
+      <div
+        className="hero-panel-in relative rounded-2xl sm:rounded-3xl border border-slate-300/80 bg-white shadow-2xl overflow-hidden"
       >
         {/* Top Enterprise Console Bar */}
         <div className="px-4 py-3 bg-slate-900 text-white flex items-center justify-between text-xs border-b border-slate-800">
@@ -414,7 +404,7 @@ export function HeroMapVisual() {
             </div>
 
             {/* Rahul's Floating Badge */}
-            <div className="absolute left-1/2 -translate-x-1/2 top-12 bg-slate-900/95 backdrop-blur-md text-white rounded-lg px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap shadow-xl border border-slate-700 flex items-center gap-1.5">
+            <div className="absolute left-1/2 -translate-x-1/2 top-12 bg-slate-900/95 text-white rounded-lg px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap shadow-xl border border-slate-700 flex items-center gap-1.5">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
               <span>Rahul (34 km/h)</span>
             </div>
@@ -439,7 +429,7 @@ export function HeroMapVisual() {
             </div>
 
             {/* Amit's Floating Badge */}
-            <div className="absolute left-1/2 -translate-x-1/2 -top-8 bg-purple-950/95 backdrop-blur-md text-purple-200 rounded-lg px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap shadow-xl border border-purple-800 flex items-center gap-1.5">
+            <div className="absolute left-1/2 -translate-x-1/2 -top-8 bg-purple-950/95 text-purple-200 rounded-lg px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap shadow-xl border border-purple-800 flex items-center gap-1.5">
               <MapPin className="h-3 w-3 text-purple-400" />
               <span>Amit • On Visit</span>
             </div>
@@ -478,7 +468,7 @@ export function HeroMapVisual() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 12 }}
               transition={{ duration: 0.25 }}
-              className="absolute top-2.5 right-2.5 w-[210px] sm:w-[245px] bg-slate-900/95 backdrop-blur-xl border border-slate-700/90 rounded-xl p-2.5 sm:p-3 shadow-2xl text-white z-30"
+              className="absolute top-2.5 right-2.5 w-[210px] sm:w-[245px] bg-slate-900/95 border border-slate-700/90 rounded-xl p-2.5 sm:p-3 shadow-2xl text-white z-30"
             >
               <div className="flex items-center justify-between pb-2.5 border-b border-slate-800">
                 <div className="flex items-center gap-2">
@@ -600,7 +590,7 @@ export function HeroMapVisual() {
             <span>FIETRA RTK-ACTIVE</span>
           </div>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

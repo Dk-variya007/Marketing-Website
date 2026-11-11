@@ -1,93 +1,52 @@
-# TrackField — Marketing Website Homepage
+# Fietra — Marketing Website
 
-A modern, high-converting B2B SaaS marketing website homepage built for **TrackField** — the field workforce geo-tracking platform.
-
-Inspired by the marketing quality and storytelling of Keka HR, Linear, Stripe, and Vercel, with a bespoke TrackField visual identity centered around GPS routes, live operations, and an offline-first telemetry engine.
+Marketing site for **Fietra**, the field workforce geo-tracking platform (GPS tracking, geo attendance, visit verification,
+route history and offline-first tracking).
 
 ---
 
-## 🚀 Key Homepage Sections & Storytelling Flow
+## 🗺️ Site Structure
 
-1. **Sticky Header Navigation**
-   - Brand logo mark with custom geometric GPS compass emblem
-   - Rich mega-dropdowns for *Product* and *Solutions*
-   - Interactive *Login* and *Book a Demo* triggers
-   - Responsive mobile navigation drawer with backdrop blur
+| URL | Page |
+| --- | --- |
+| `/` | Home — hero → who it's for → the problem → capabilities → how tracking works → Track/Understand/Act → industries → CTA |
+| `/product` | Platform overview |
+| `/product/[slug]` | One page per capability: `live-tracking`, `offline-tracking`, `route-history`, `visit-management`, `attendance-breaks`, `reports` |
+| `/product/tracking-map` | Scroll-driven walkthrough of a full field day (nav: **How It Works**) |
+| `/solutions` | Industries, each with its own anchor (`#field-sales`, `#field-service`, `#logistics-delivery`, `#construction`) |
+| `/pricing` | Quote request, free pilot, FAQ |
 
-2. **Hero Section & Hero Product Visual**
-   - **H1 Headline:** *"Know where your field team is. Know what they're doing."*
-   - Dual CTAs: `Book a Demo` (modal) and `See How It Works ↓` (smooth scroll)
-   - Original TrackField product visualization:
-     - SVG map with animated route paths drawing themselves
-     - Employee live cards: Rahul (● Tracking 2.4 km), Amit (● On Visit, Apollo Diagnostics), Priya (● Tracking 4.8 km)
-     - Geofence polygon toggle and live operations status ticker
+`/tracking-flow` and `/tracking-map` permanently redirect to `/product/tracking-map`.
 
-3. **Trust Strip**
-   - *"Built for teams that move."*
-   - Clean industry badges: FIELD SALES, FIELD SERVICE, LOGISTICS, DELIVERY, CONSTRUCTION, DISTRIBUTION
-   - Enterprise benchmarks (99.98% sync reliability, &lt;10m GPS accuracy, 0% data loss, 3% battery drain/day)
+## 📁 Where Things Live
 
-4. **Problem Section**
-   - *"Your field team is moving. Can you actually see what's happening?"*
-   - Split layout with interactive numbered cards (01 to 05) highlighting common field operational blind spots
-   - Seamless visual transition into: *"TrackField changes that."*
+- `lib/products.ts`, `lib/solutions.ts` — content for product pages, menus, footer, home grid and sitemap (single source of truth)
+- `lib/site.ts`, `lib/seo.ts` — site URL, per-page metadata helper, JSON-LD builders
+- `app/sitemap.ts`, `app/robots.ts`, `app/opengraph-image.tsx` — crawl + share metadata
+- `components/demo/` — site-wide "Book a Demo" modal (`useDemo()`, `<DemoButton>`)
+- `components/navbar`, `components/footer` — shared shell, rendered once in `app/layout.tsx`
+- `components/product/` — product page sections and the mini product visuals
+- `components/tracking-map/` — Tracking Map story, map scene, phone HUD and the shared `TrackingStages` section
 
-5. **Product Introduction (6 Core Pillars)**
-   - *"One platform. Every field movement."*
-   - 6 feature cards with minimal icons, micro-visual previews, and hover states:
-     - Live GPS Tracking
-     - Geo-Attendance
-     - Route History
-     - Visit Management
-     - Break Tracking
-     - Offline Tracking
+Set `NEXT_PUBLIC_SITE_URL` (defaults to `https://fietra.com`) so canonical URLs, the sitemap and OG tags use the right host.
 
-6. **Live Tracking Showcase**
-   - *"See your team in real time."*
-   - Large operations map with live employee sidebar and telemetry inspector
-   - Dynamic filters (`All`, `Tracking`, `On Visit`, `Break`)
-   - KPI counters: `24 employees tracking`, `8 visits completed`, `142 km travelled`
+## 📨 Demo Requests
 
-7. **Offline-First Section (Core Differentiator)**
-   - *"Tracking doesn't stop when the internet does."*
-   - Visual architectural pipeline: `ONLINE` → `GPS LOCATION` → `OFFLINE` → `LOCAL STORAGE` → `CONNECTION RESTORED` → `SYNC` → `MANAGER DASHBOARD`
-   - Simulated smartphone frame running the full cycle from disconnection to batch delta upload with 0% data loss
+The "Book a Demo" form posts to `app/api/demo/route.ts`, which validates the request (rules in `lib/demo.ts`), filters bots
+(honeypot + per-IP rate limit) and delivers the lead to whichever destinations are configured — see `.env.example`:
 
-8. **Route Story Section**
-   - *"See the journey. Not just the destination."*
-   - Interactive chronological timeline:
-     - `09:10` Tracking started
-     - `10:15` Customer visit
-     - `12:30` Break (orange segment)
-     - `13:05` Tracking resumed
-     - `15:20` Customer visit
-     - `17:45` Tracking ended (success green)
-   - Synchronized map waypoint inspector with speed and odometer metrics
+- `DEMO_WEBHOOK_URL` — JSON POST to Zapier, Make, a Google Apps Script (→ Google Sheets), Slack or your CRM
+- `RESEND_API_KEY` + `DEMO_NOTIFY_EMAIL` (+ optional `DEMO_FROM_EMAIL`) — email to your sales inbox via Resend
 
-9. **Field Visibility Section**
-   - *"From employee movement to business insight."*
-   - 3 connected stages with animated connectors: `01 TRACK` → `02 UNDERSTAND` → `03 ACT`
+In development with nothing configured, leads are logged to the server console. In production with nothing configured, the
+form shows an error instead of silently losing the lead. The API route needs a Node server (`next start`, Vercel, etc.),
+not a static export.
 
-10. **Mobile + Web Experience**
-    - *"Built for employees in the field. Designed for managers at the desk."*
-    - Interactive tab switcher: *Side-by-Side Dual View*, *Mobile Field App*, *Manager Console*
-    - Realistic UI frames (`PhoneMockup` and `BrowserMockup`)
+## ⚖️ Legal & Trust Pages
 
-11. **Industries Preview**
-    - Cards for *Field Sales*, *Field Service*, *Logistics & Delivery*, and *Construction*
-    - Bespoke mini SVG route diagrams per industry
-
-12. **Final High-Impact CTA**
-    - Subtle dark map grid with glowing connected location constellation points
-    - *"Bring your field team into view."*
-    - Reassurances: 14-day pilot, zero credit card, 15-minute deployment
-
-13. **Footer**
-    - 5-column SaaS structure: Product, Solutions, Resources, Company, Legal
-    - Copyright © 2026 TrackField. All rights reserved.
-
-14. **Book a Demo Modal**
-    - Interactive modal dialog across the website with form validation and confirmation state
+`/legal/privacy-policy`, `/legal/terms`, `/employee-privacy`, `/security`. Company details (address, emails, grievance
+officer, jurisdiction, hosting region) live in `lib/legal.ts` — replace every `[…]` placeholder and have the text reviewed by
+legal counsel before launch.
 
 ---
 
@@ -119,4 +78,9 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 ```bash
 npm run build
 npm run start
+```
+
+### 4. Lint
+```bash
+npm run lint
 ```

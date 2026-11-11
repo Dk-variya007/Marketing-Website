@@ -1,25 +1,20 @@
-"use client";
-
 import React from "react";
 import { Container } from "../ui/Container";
-import { Button } from "../ui/Button";
-import { ArrowRight, ShieldCheck, Zap, Sparkles, MapPin } from "lucide-react";
+import { DemoButton } from "../demo/DemoButton";
+import { ShieldCheck, Zap, MapPin } from "lucide-react";
 
-interface FinalCTAProps {
-  onOpenDemo: () => void;
-}
-
-export function FinalCTA({ onOpenDemo }: FinalCTAProps) {
+export function FinalCTA() {
   return (
     <section className="py-24 sm:py-32 bg-navy-950 text-white relative overflow-hidden">
       {/* Background Dark Map Grid & Connected Nodes */}
       <div className="absolute inset-0 bg-grid-dark opacity-30 pointer-events-none" />
 
       {/* Atmospheric Radial Gradients */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] bg-gradient-to-tr from-brand-600/20 via-indigo-600/20 to-emerald-600/10 rounded-full blur-3xl pointer-events-none -z-10" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[820px] h-[620px] bg-[radial-gradient(ellipse_at_center,rgba(37,99,235,0.2),rgba(79,70,229,0.14)_35%,rgba(5,150,105,0.06)_55%,transparent_70%)] pointer-events-none -z-10" />
 
       {/* Background SVG Connected Location Points */}
       <svg
+        aria-hidden="true"
         className="absolute inset-0 w-full h-full pointer-events-none opacity-25"
         xmlns="http://www.w3.org/2000/svg"
       >
@@ -55,24 +50,16 @@ export function FinalCTA({ onOpenDemo }: FinalCTAProps) {
 
         {/* Action Buttons */}
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Button
-            variant="primary"
-            size="lg"
-            onClick={onOpenDemo}
-            className="text-base px-8 py-4 shadow-xl shadow-brand-600/30"
-            icon={<ArrowRight className="h-4 w-4" />}
-          >
-            Book a Demo
-          </Button>
+          <DemoButton size="lg" className="text-base px-8 py-4 shadow-xl shadow-brand-600/30" />
 
-          <Button
+          <DemoButton
             variant="secondary"
             size="lg"
-            onClick={onOpenDemo}
+            icon={null}
             className="text-base px-8 py-4 bg-white/10 text-white border-white/20 hover:bg-white/20 hover:border-white/30"
           >
             Get Started Free
-          </Button>
+          </DemoButton>
         </div>
 
         {/* Enterprise trust points below CTA */}

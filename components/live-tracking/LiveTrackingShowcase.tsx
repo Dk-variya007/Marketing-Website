@@ -10,15 +10,9 @@ import {
   Users,
   Navigation,
   CheckCircle2,
-  Filter,
-  Search,
   Battery,
   MapPin,
   Clock,
-  Zap,
-  Maximize2,
-  RefreshCw,
-  TrendingUp,
 } from "lucide-react";
 
 // Map geometry for each demo employee, in a 800 × 520 map space.
@@ -505,7 +499,7 @@ export function LiveTrackingShowcase() {
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.25 }}
-                className="absolute top-4 right-4 max-w-xs w-full bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-xl border border-slate-200/90 z-30 hidden sm:block"
+                className="absolute top-4 right-4 max-w-xs w-full bg-white/95 rounded-2xl p-4 shadow-xl border border-slate-200/90 z-30 hidden sm:block"
               >
                 <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                   <div className="flex items-center gap-2">

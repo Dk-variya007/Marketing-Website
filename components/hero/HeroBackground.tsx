@@ -1,9 +1,9 @@
-"use client";
-
 import React from "react";
-import { motion } from "framer-motion";
 
 /**
+ * Server-rendered, JS-free hero background. Line "draw-in" effects are CSS (`.svg-draw`), and every loop
+ * pauses off screen (OffscreenAnimationPause) and stops entirely under prefers-reduced-motion.
+ *
  * Premium tracking-themed hero background with:
  * - Aurora gradient waves
  * - Network constellation mesh
@@ -13,7 +13,7 @@ import { motion } from "framer-motion";
  */
 export function HeroBackground() {
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+    <div aria-hidden="true" className="absolute inset-0 overflow-hidden pointer-events-none">
       {/* ═══ BASE GRADIENT — Deep space-like with rich blue/purple tones ═══ */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_120%_80%_at_50%_-20%,#1e3a5f_0%,#0f1f3d_35%,#080e1f_60%,#040810_100%)]" />
 
@@ -92,15 +92,6 @@ export function HeroBackground() {
             <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
           </linearGradient>
 
-          {/* Glow filter for nodes */}
-          <filter id="node-glow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="3" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-
           {/* Route gradient */}
           <linearGradient id="mesh-line-1" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.08" />
@@ -115,36 +106,11 @@ export function HeroBackground() {
 
         {/* ═══ TOPOGRAPHIC CONTOUR LINES ═══ */}
         <g opacity="0.08" fill="none" stroke="#60a5fa" strokeWidth="0.8">
-          <motion.ellipse
-            cx="960" cy="350" rx="500" ry="200"
-            initial={{ pathLength: 0 }}
-            animate={{ pathLength: 1 }}
-            transition={{ duration: 3, ease: "easeOut" }}
-          />
-          <motion.ellipse
-            cx="960" cy="350" rx="400" ry="160"
-            initial={{ pathLength: 0 }}
-            animate={{ pathLength: 1 }}
-            transition={{ duration: 3, delay: 0.3, ease: "easeOut" }}
-          />
-          <motion.ellipse
-            cx="960" cy="350" rx="300" ry="120"
-            initial={{ pathLength: 0 }}
-            animate={{ pathLength: 1 }}
-            transition={{ duration: 3, delay: 0.6, ease: "easeOut" }}
-          />
-          <motion.ellipse
-            cx="960" cy="350" rx="200" ry="80"
-            initial={{ pathLength: 0 }}
-            animate={{ pathLength: 1 }}
-            transition={{ duration: 3, delay: 0.9, ease: "easeOut" }}
-          />
-          <motion.ellipse
-            cx="960" cy="350" rx="100" ry="40"
-            initial={{ pathLength: 0 }}
-            animate={{ pathLength: 1 }}
-            transition={{ duration: 3, delay: 1.2, ease: "easeOut" }}
-          />
+          <ellipse cx="960" cy="350" rx="500" ry="200" pathLength={1} className="svg-draw" style={{ animationDelay: "0s", animationDuration: "3s" }} />
+          <ellipse cx="960" cy="350" rx="400" ry="160" pathLength={1} className="svg-draw" style={{ animationDelay: "0.3s", animationDuration: "3s" }} />
+          <ellipse cx="960" cy="350" rx="300" ry="120" pathLength={1} className="svg-draw" style={{ animationDelay: "0.6s", animationDuration: "3s" }} />
+          <ellipse cx="960" cy="350" rx="200" ry="80" pathLength={1} className="svg-draw" style={{ animationDelay: "0.9s", animationDuration: "3s" }} />
+          <ellipse cx="960" cy="350" rx="100" ry="40" pathLength={1} className="svg-draw" style={{ animationDelay: "1.2s", animationDuration: "3s" }} />
         </g>
 
         {/* ═══ RADAR CONCENTRIC RINGS — centered, pulsing outward ═══ */}
@@ -162,47 +128,21 @@ export function HeroBackground() {
         {/* ═══ CONSTELLATION NETWORK MESH — Connected nodes ═══ */}
         {/* Network connection lines */}
         <g stroke="url(#mesh-line-1)" strokeWidth="0.8" fill="none">
-          <motion.line x1="200" y1="150" x2="450" y2="280"
-            initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-            transition={{ duration: 2, delay: 0.5 }} />
-          <motion.line x1="450" y1="280" x2="700" y2="200"
-            initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-            transition={{ duration: 2, delay: 0.8 }} />
-          <motion.line x1="700" y1="200" x2="960" y2="350"
-            initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-            transition={{ duration: 2, delay: 1.1 }} />
-          <motion.line x1="960" y1="350" x2="1200" y2="250"
-            initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-            transition={{ duration: 2, delay: 1.4 }} />
-          <motion.line x1="1200" y1="250" x2="1500" y2="380"
-            initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-            transition={{ duration: 2, delay: 1.7 }} />
-          <motion.line x1="1500" y1="380" x2="1750" y2="200"
-            initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-            transition={{ duration: 2, delay: 2.0 }} />
+          <line x1="200" y1="150" x2="450" y2="280" pathLength={1} className="svg-draw" style={{ animationDelay: "0.5s" }} />
+          <line x1="450" y1="280" x2="700" y2="200" pathLength={1} className="svg-draw" style={{ animationDelay: "0.8s" }} />
+          <line x1="700" y1="200" x2="960" y2="350" pathLength={1} className="svg-draw" style={{ animationDelay: "1.1s" }} />
+          <line x1="960" y1="350" x2="1200" y2="250" pathLength={1} className="svg-draw" style={{ animationDelay: "1.4s" }} />
+          <line x1="1200" y1="250" x2="1500" y2="380" pathLength={1} className="svg-draw" style={{ animationDelay: "1.7s" }} />
+          <line x1="1500" y1="380" x2="1750" y2="200" pathLength={1} className="svg-draw" style={{ animationDelay: "2.0s" }} />
           {/* Cross connections */}
-          <motion.line x1="450" y1="280" x2="350" y2="500"
-            initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-            transition={{ duration: 2, delay: 1.0 }} />
-          <motion.line x1="700" y1="200" x2="850" y2="500"
-            initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-            transition={{ duration: 2, delay: 1.3 }} />
-          <motion.line x1="960" y1="350" x2="1100" y2="550"
-            initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-            transition={{ duration: 2, delay: 1.6 }} />
-          <motion.line x1="1200" y1="250" x2="1350" y2="480"
-            initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-            transition={{ duration: 2, delay: 1.9 }} />
+          <line x1="450" y1="280" x2="350" y2="500" pathLength={1} className="svg-draw" style={{ animationDelay: "1.0s" }} />
+          <line x1="700" y1="200" x2="850" y2="500" pathLength={1} className="svg-draw" style={{ animationDelay: "1.3s" }} />
+          <line x1="960" y1="350" x2="1100" y2="550" pathLength={1} className="svg-draw" style={{ animationDelay: "1.6s" }} />
+          <line x1="1200" y1="250" x2="1350" y2="480" pathLength={1} className="svg-draw" style={{ animationDelay: "1.9s" }} />
           {/* Bottom row connections */}
-          <motion.line x1="350" y1="500" x2="850" y2="500"
-            initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-            transition={{ duration: 2, delay: 1.5 }} />
-          <motion.line x1="850" y1="500" x2="1100" y2="550"
-            initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-            transition={{ duration: 2, delay: 1.8 }} />
-          <motion.line x1="1100" y1="550" x2="1350" y2="480"
-            initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-            transition={{ duration: 2, delay: 2.1 }} />
+          <line x1="350" y1="500" x2="850" y2="500" pathLength={1} className="svg-draw" style={{ animationDelay: "1.5s" }} />
+          <line x1="850" y1="500" x2="1100" y2="550" pathLength={1} className="svg-draw" style={{ animationDelay: "1.8s" }} />
+          <line x1="1100" y1="550" x2="1350" y2="480" pathLength={1} className="svg-draw" style={{ animationDelay: "2.1s" }} />
         </g>
 
         {/* Network Nodes — glowing dots at intersections */}
@@ -219,22 +159,18 @@ export function HeroBackground() {
           { cx: 1100, cy: 550, r: 2, color: "#3b82f6", delay: 1.8 },
           { cx: 1350, cy: 480, r: 2.5, color: "#10b981", delay: 2.1 },
         ].map((node, i) => (
-          <motion.g key={`node-${i}`}
-            initial={{ opacity: 0, scale: 0 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, delay: node.delay }}
-          >
+          <g key={`node-${i}`} className="svg-pop" style={{ animationDelay: `${node.delay}s` }}>
             {/* Outer glow */}
             <circle cx={node.cx} cy={node.cy} r={node.r * 3} fill={node.color} opacity="0.08" />
             {/* Node body */}
-            <circle cx={node.cx} cy={node.cy} r={node.r} fill={node.color} opacity="0.5" filter="url(#node-glow)" />
+            <circle cx={node.cx} cy={node.cy} r={node.r} fill={node.color} opacity="0.5" />
             {/* Core bright dot */}
             <circle cx={node.cx} cy={node.cy} r={node.r * 0.4} fill="white" opacity="0.7" />
-          </motion.g>
+          </g>
         ))}
 
         {/* ═══ ANIMATED GPS ROUTES — Dashed paths flowing across ═══ */}
-        <motion.path
+        <path
           d="M -50,300 C 300,250 500,400 800,320 S 1200,200 1500,350 1700,250 1950,350"
           fill="none"
           stroke="#3b82f6"
@@ -242,11 +178,10 @@ export function HeroBackground() {
           strokeDasharray="8 4"
           strokeLinecap="round"
           opacity="0.15"
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: 1 }}
-          transition={{ duration: 4, delay: 0.5, ease: "easeInOut" }}
+          className="svg-fade"
+          style={{ animationDelay: "0.5s", animationDuration: "4s" }}
         />
-        <motion.path
+        <path
           d="M -30,600 C 200,550 450,650 750,580 S 1100,500 1400,600 1650,520 1950,620"
           fill="none"
           stroke="#8b5cf6"
@@ -254,9 +189,8 @@ export function HeroBackground() {
           strokeDasharray="6 6"
           strokeLinecap="round"
           opacity="0.1"
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: 1 }}
-          transition={{ duration: 4.5, delay: 1, ease: "easeInOut" }}
+          className="svg-fade"
+          style={{ animationDelay: "1s", animationDuration: "4.5s" }}
         />
 
         {/* ═══ COMPASS ROSE — Large subtle watermark ═══ */}

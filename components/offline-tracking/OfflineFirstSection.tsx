@@ -1,11 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { useInView } from "framer-motion";
 import { Container } from "../ui/Container";
 import { SectionHeader } from "../ui/SectionHeader";
 import { PhoneMockup } from "../ui/DeviceMockup";
-import { Badge } from "../ui/Badge";
-import { Button } from "../ui/Button";
 import {
   Wifi,
   WifiOff,
@@ -17,22 +16,24 @@ import {
   Zap,
   ArrowRight,
   Play,
-  RotateCcw,
 } from "lucide-react";
 
 export function OfflineFirstSection() {
   // Phases: 0: Online, 1: Offline, 2: Restored, 3: Syncing, 4: Synced
   const [phase, setPhase] = useState<number>(1);
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
+  const sectionRef = useRef<HTMLElement>(null);
+  const inView = useInView(sectionRef);
 
   // Auto-play cycling through the simulation
   useEffect(() => {
-    if (!isPlaying) return;
+    // Paused while off screen — no re-renders the user can't see.
+    if (!isPlaying || !inView) return;
     const timer = setInterval(() => {
       setPhase((prev) => (prev + 1) % 5);
     }, 3200);
     return () => clearInterval(timer);
-  }, [isPlaying]);
+  }, [isPlaying, inView]);
 
   const pipelineSteps = [
     {
@@ -83,13 +84,13 @@ export function OfflineFirstSection() {
   ];
 
   return (
-    <section id="offline-tracking" className="py-24 sm:py-32 bg-navy-950 text-white relative overflow-hidden">
+    <section ref={sectionRef} id="offline-tracking" className="py-24 sm:py-32 bg-navy-950 text-white relative overflow-hidden">
       {/* Dark grid background pattern */}
       <div className="absolute inset-0 bg-grid-dark opacity-40 pointer-events-none" />
 
       {/* Ambient background glows */}
-      <div className="absolute top-1/4 -left-40 w-96 h-96 bg-brand-600/20 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-1/4 -right-40 w-96 h-96 bg-emerald-600/15 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-1/4 -left-56 w-[32rem] h-[32rem] bg-[radial-gradient(circle,rgba(37,99,235,0.2),transparent_65%)] pointer-events-none" />
+      <div className="absolute bottom-1/4 -right-56 w-[32rem] h-[32rem] bg-[radial-gradient(circle,rgba(5,150,105,0.15),transparent_65%)] pointer-events-none" />
 
       <Container size="wide" className="relative z-10">
         <SectionHeader
@@ -107,7 +108,7 @@ export function OfflineFirstSection() {
         />
 
         {/* Visual Storytelling Pipeline Bar */}
-        <div className="mb-14 p-4 sm:p-6 rounded-2xl bg-navy-900/80 border border-navy-800/80 backdrop-blur-md">
+        <div className="mb-14 p-4 sm:p-6 rounded-2xl bg-navy-900/85 border border-navy-800/80">
           <div className="flex items-center justify-between mb-4">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
               Interactive Offline-Sync Architecture
@@ -281,7 +282,7 @@ export function OfflineFirstSection() {
 
                   {/* Phase 1: Disconnected / Offline */}
                   {phase === 1 && (
-                    <div className="space-y-4 animate-in fade-in duration-200">
+                    <div className="space-y-4">
                       <div className="p-4 rounded-xl bg-rose-950/40 border border-rose-800 text-left">
                         <div className="flex items-center gap-2 text-rose-400 font-bold text-sm mb-1">
                           <WifiOff className="h-4 w-4" />
@@ -306,7 +307,7 @@ export function OfflineFirstSection() {
 
                   {/* Phase 2: Local SQLite Storing 24 points */}
                   {phase === 2 && (
-                    <div className="space-y-4 animate-in fade-in duration-200">
+                    <div className="space-y-4">
                       <div className="p-4 rounded-xl bg-amber-950/40 border border-amber-800 text-left">
                         <div className="flex items-center gap-2 text-amber-400 font-bold text-sm mb-1">
                           <Database className="h-4 w-4" />
@@ -333,7 +334,7 @@ export function OfflineFirstSection() {
 
                   {/* Phase 3: Connection restored & Syncing */}
                   {phase === 3 && (
-                    <div className="space-y-4 animate-in fade-in duration-200">
+                    <div className="space-y-4">
                       <div className="p-4 rounded-xl bg-blue-950/40 border border-blue-800 text-left">
                         <div className="flex items-center gap-2 text-blue-400 font-bold text-sm mb-1">
                           <RefreshCw className="h-4 w-4 animate-spin" />
@@ -358,7 +359,7 @@ export function OfflineFirstSection() {
 
                   {/* Phase 4: All synced */}
                   {phase === 4 && (
-                    <div className="space-y-4 animate-in fade-in duration-200">
+                    <div className="space-y-4">
                       <div className="p-4 rounded-xl bg-emerald-950/40 border border-emerald-800 text-left">
                         <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm mb-1">
                           <CheckCircle2 className="h-4 w-4" />
